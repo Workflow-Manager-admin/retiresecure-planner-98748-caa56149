@@ -1,0 +1,4 @@
+{
+    "command": "npm run test",
+    "working_directory": "/home/kavia/workspace/code-generation/retiresecure-planner-98748-caa56149/retirement_frontend"
+}
