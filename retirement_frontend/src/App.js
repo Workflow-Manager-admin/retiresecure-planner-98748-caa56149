@@ -528,7 +528,10 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
           // Label string always rendered as one, pure, directly text-only node:
-          const labelText = typeof s.label === "string" ? s.label : `Scenario ${i + 1}`;
+          let labelText = typeof s.label === "string" ? s.label : `Scenario ${i + 1}`;
+          // Ensure that labelText is always a string (defensive fallback)
+          if (typeof labelText !== "string") labelText = String(labelText);
+
           return (
             <li
               className={i === activeIdx ? "active" : ""}
@@ -545,7 +548,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 data-scenario-id={s.id}
                 data-scenario-label={labelText}
               >
-                {/* The label below renders as one DOM text node, uninterrupted: */}
+                {/* GUARANTEE: the label renders as a *single*, contiguous DOM text node (no wrapper, no fragment) */}
                 {labelText}
               </button>
               <button
