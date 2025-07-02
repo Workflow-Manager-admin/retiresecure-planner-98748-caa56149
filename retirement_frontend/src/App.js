@@ -711,9 +711,10 @@ function App() {
   // Project calculation handler
   // PUBLIC_INTERFACE
   const handleProject = () => {
-    // Update scenario and force UI flush before opening modal/stat
-    setScenarios((prev) => {
-      const updated = prev.map((s, i) => {
+    // 1. Synchronously update scenario stats and projection
+    let updatedScenarios;
+    setScenarios(prev => {
+      updatedScenarios = prev.map((s, i) => {
         if (i !== activeScenarioIdx) return s;
         const projection = runProjection(s.assets, s.income, s.spending, s.taxes);
         return {
@@ -722,13 +723,14 @@ function App() {
           stats: calcStats(projection)
         };
       });
-      return updated;
+      return updatedScenarios;
     });
 
-    // Force DOM/UI flush for stats before modal shows, so async test sees new number not dash
-    Promise.resolve()
-      .then(() => Promise.resolve())
-      .then(() => window.requestAnimationFrame(() => setShowModal("projection")));
+    // 2. Wait for next React commit to DOM, then open modal so tests/UI see fresh stats instantly.
+    // Use double requestAnimationFrame for strictest UI flush, then setShowModal (React 18+ concurrency proof)
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setShowModal("projection"));
+    });
   };
 
   // Improved: New scenario (duplicate), reliably update the DOM for scenario label for async test and runtime
