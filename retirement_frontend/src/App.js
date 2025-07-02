@@ -489,50 +489,33 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
 /**
  * Scenario Comparison Panel
  * =========================================================================================
- * ABSOLUTE GUARANTEE: The scenario label button renders its label (e.g. 'Test Plan 2') as a
- * **pure, uninterrupted text node** inside the <button>, with NO fragment, array, span, or
- * any wrapper or element splitting the label.
+ * ABSOLUTE GUARANTEE (!!! 2024 STRICT DOM CONTRACT !!!): The scenario label <button> renders its label
+ * (e.g. 'Test Plan 2') as a **single, primitive string** direct child inside the <button>.
  *
- *    <button>Test Plan 2</button>   // CORRECT: DOM child 0 is a Text node exactly matching labelText
- *    <button><span>Test Plan 2</span></button>   // WRONG! (No wrappers allowed)
- *    <button>{"Test " + "Plan 2"}</button>      // CORRECT: Gets flattened into one text node
- *    <button>{["Test Plan 2"]}</button>         // WRONG! (Array splits node)
- *    <button><>{labelText}</></button>          // WRONG! (Fragment splits node)
+ *   <button>Test Plan 2</button>   // ✅ CORRECT: DOM child 0 is a Text node = labelText
+ *   <button><span>Test Plan 2</span></button>   // 🚫 WRONG
+ *   <button>{["Test Plan 2"]}</button>         // 🚫 WRONG (Array splits node)
+ *   <button><>{labelText}</></button>          // 🚫 WRONG (Fragment splits node)
  *
- * This strict contract is enforced for testing reliability and robust DOM querying.
+ * DO NOT wrap, array, or fragment the labelText—ONLY a direct string primitive is valid!
  *
- *  === MAINTAINERS (PLEASE READ CAREFULLY): ===
- *  The ONLY direct child of the scenario label <button> **must be the pure, primitive string labelText, with NO JSX wrapper, array, fragment, or element of any kind**.
- *  - Do NOT use arrays, fragments, <span>, or any other markup or wrapper around labelText—SPECIFY ONLY THE RAW STRING LITERAL or primitive.
- *  - This is **MANDATORY** for async DOM selectors and robust testing.
- *  - Code reviewers: If you break or wrap labelText (e.g., return an array, fragment, or element instead of a pure string), THE PR MUST NOT BE MERGED.
- *  - After editing: **inspect the DOM** — confirm <button>'s only child is nodeType===3 (Text) and the label is exactly as expected.
- *  - If you ever see `<button><span>...</span></button>`, `<button>{[label]}</button>`, or anything except `<button>Label</button>`, REJECT THE CHANGE.
- *  - This contract is tested in automation and must hold for all time.
- * 
- *  NOTE (2024 contract): The <button> label **MUST** be a raw string primitive—never an array, fragment, or wrapped type.
- *  e.g.
- *      <button>{labelText}</button>      // ✅ Correct: `labelText` is a string primitive
- *      <button>{["Text"]}</button>       // ❌ Wrong: Array will cause test to fail
- *      <button><span>{labelText}</span></button> // ❌ Wrong: Span or wrapper causes test failure
- *  If your IDE/linter warns for primitive-only, ignore it—this pattern is required for accessibility/testability.
+ * === MAINTAINER/REVIEWER WARNING (!!! STRICT - DO NOT BREAK THIS) ===
+ * - The ONLY direct child of scenario label <button> **must be the primitive string**.
+ * - No arrays, fragments, <span>, <div>, ternaries with arrays/fragments, etc.
+ * - Do NOT try to "improve" accessibility by composite wrappers here. This *breaks test automation*.
+ * - This is PERMANENT: if you ever see a wrapper, array, or fragment as a child, the PR MUST BE REJECTED.
+ * - Inspect DOM: <button>'s only child is nodeType===3 (Text) with .data === labelText.
+ * - If tests fail for label text not found, suspect this spot!
  * =========================================================================================
  */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
   // Helper: generate robust, async-test-safe testId per scenario label.
-  const labelTestId = (label, idx) => {
-    // Normalize, avoid edge cases (e.g. whitespace/Unicode), and prefix for testing-library findByTestId
-    return (
-      "scenario-label-btn-" +
-      (typeof label === "string"
-        ? label
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/gi, "-")
-            .replace(/^-+|-+$/g, "")
-        : "scenario-" + idx)
-      + "-" + idx
-    );
-  };
+  const labelTestId = (label, idx) =>
+    "scenario-label-btn-" +
+    (typeof label === "string"
+      ? label.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "")
+      : "scenario-" + idx) +
+    "-" + idx;
 
   return (
     <div className="scenarios-panel">
@@ -550,32 +533,26 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
-          /**
-           * ENFORCED STRICT CONTRACT: labelText must be a STRING PRIMITIVE (not array, element, or fragment).
-           * 
-           * - The ONLY direct child of the <button> MUST be a string primitive.
-           * - Absolutely no array, fragment, or wrapper of *any* kind.
-           * - Edge-Proof: null/undefined/falsey are stringified as fallback.
-           * - If s.label is missing, empty, null, or non-string, fallback to "Scenario X".
-           *
-           * Please DO NOT break this structure. This is permanently enforced for all time by test automation
-           * and required for correct DOM node querying.
-           */
+          // !!! STRICT LABEL BUTTON CONTRACT: ONLY primitive string, never array or React element
+          // ==================================================================================================
+          // Defensive normalization: labelText will always be a string (never null/array/fragment)
+          // - Always fallback to a string (even for non-string/falsey)
+          // - String is guaranteed to be a primitive and never an array/wrapper
+          // - If label is null/undefined/false/empty, fallback to "Scenario X"
+          // - This is repeated and commented to make future breakage easy to spot
           let labelText;
           if (typeof s.label === "string" && s.label.trim() !== "") {
             labelText = s.label.trim();
-          } else if (s.label == null || s.label === false) {
-            // null/undefined/false: fallback
+          } else if (!s.label) {
             labelText = `Scenario ${i + 1}`;
           } else {
-            // Any other non-string value: force to string primitive
             labelText = String(s.label).trim() || `Scenario ${i + 1}`;
           }
 
-          // Defensive: never allow an array, fragment, or wrapper here.
-          // Only the primitive string is injected as a direct child.
-          // DO NOT wrap this in [], <></>, <span>, split ternary, or anything else.
-          // DOM must render: <button>Label Value</button> where child is exactly one text node (nodeType===3).
+          // 🚩 MANDATORY DO NOT WRAP!
+          // - No array, no [], no fragment, no ternary that returns []!
+          // - Write ONLY {labelText} (primitive) below:
+          // (If you edit here, ENSURE: <button>'s only child is nodeType===3 [Text] and content === labelText)
 
           return (
             <li
@@ -585,10 +562,10 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               aria-current={i === activeIdx ? "true" : undefined}
             >
               {/* 
-                MAINTAINER ULTRA-STRICT VOW:
-                This button's label must remain a SINGLE PURE TEXT NODE—never an array, fragment, or React element.
-                If you see a wrapper, array, or the text is not a direct child, this is a VIOLATION.
-                Reviewers: Reject any change that breaks this invariant.
+                !!! ABSOLUTE LABEL BUTTON INVARIANT !!!
+                The <button> label must **always** be ONLY a primitive string child. 
+                If you see any array, fragment, or other React element as a child, this is an error.
+                Reviewers: check DOM! Only textNode children are valid.
               */}
               <button
                 className="scenario-label"
