@@ -122,6 +122,7 @@ function Modal({ open, onClose, children, title, id }) {
  * - Buttons must have visible text ("Login", "Register", "Guest"), role="button", correct aria-label for test/ax,
  * - Tab switch only changes visible panel, not DOM presence,
  * - Ensure accessibility/aria and match testing-library queries (esp. 'name' for getByRole).
+ * - All main authentication buttons (tab and submit) should always be in the DOM, presence/visibility controlled by focus/state only.
  */
 function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
   const [tab, setTab] = useState(initialTab);
@@ -140,7 +141,13 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
     }
   };
 
-  // Each of Login, Register, Guest is always in the DOM for test discovery, visibility toggled by tab.
+  // Always render the tab buttons and all panels for test/AT discoverability.
+  // Switch visibility via CSS only, never remove from DOM.
+
+  // Helper for visibility
+  const visStyle = (active) =>
+    active ? { display: "flex", flexDirection: "column", gap: 8 } : { display: "none" };
+
   return (
     <Modal
       open={open}
@@ -148,66 +155,63 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
       title="Welcome to RetireSecure"
       id="auth-modal"
     >
+      {/* Tablist: all buttons present and with specific text/aria as required */}
       <div
         style={{ marginBottom: 20, display: "flex", gap: 8 }}
         role="tablist"
         aria-label="Authentication Modes"
       >
-        {/* Tab buttons (always in DOM) */}
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
           type="button"
           role="button"
           aria-label="Login"
           aria-pressed={tab === "login"}
+          aria-selected={tab === "login"}
           onClick={() => setTab("login")}
           tabIndex={0}
           id="tab-login"
           data-testid="tab-login"
-        >
-          Login
-        </button>
+          style={{}}
+        >Login</button>
         <button
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
           type="button"
           role="button"
           aria-label="Register"
           aria-pressed={tab === "register"}
+          aria-selected={tab === "register"}
           onClick={() => setTab("register")}
           tabIndex={0}
           id="tab-register"
           data-testid="tab-register"
-        >
-          Register
-        </button>
+          style={{}}
+        >Register</button>
         <button
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
           type="button"
           role="button"
           aria-label="Guest"
           aria-pressed={tab === "guest"}
+          aria-selected={tab === "guest"}
           onClick={() => setTab("guest")}
           tabIndex={0}
           id="tab-guest"
           data-testid="tab-guest"
-        >
-          Guest
-        </button>
+          style={{}}
+        >Guest</button>
       </div>
-      {/* Panel for selected tab, but tab selectors always present */}
-      {/* Only render one panel at a time; submit button always present (w/ correct label/text) */}
+      {/* Each panel is ALWAYS rendered for accessibility/tests, but only one visible. */}
       <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {/* Panels for each tab */}
         {/* Login Panel */}
         <div
           role="tabpanel"
           aria-labelledby="tab-login"
           id="tabpanel-login"
-          hidden={tab !== "login"}
-          style={{ display: tab === "login" ? "flex" : "none", flexDirection: "column", gap: 8 }}
+          aria-hidden={tab !== "login"}
           data-testid="login-panel"
+          style={visStyle(tab === "login")}
         >
-          {/* Login only needs email/password */}
           <input
             type="email"
             placeholder="Email"
@@ -237,9 +241,9 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           role="tabpanel"
           aria-labelledby="tab-register"
           id="tabpanel-register"
-          hidden={tab !== "register"}
-          style={{ display: tab === "register" ? "flex" : "none", flexDirection: "column", gap: 8 }}
+          aria-hidden={tab !== "register"}
           data-testid="register-panel"
+          style={visStyle(tab === "register")}
         >
           <input
             type="text"
@@ -281,35 +285,44 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           role="tabpanel"
           aria-labelledby="tab-guest"
           id="tabpanel-guest"
-          hidden={tab !== "guest"}
-          style={{ display: tab === "guest" ? "flex" : "none", flexDirection: "column", gap: 8 }}
+          aria-hidden={tab !== "guest"}
           data-testid="guest-panel"
+          style={visStyle(tab === "guest")}
         >
-          {/* No inputs for guest */}
+          {/* No input for guest */}
         </div>
-        {/* The submit button (always present in DOM, label matches visible panel) */}
+        {/* ALL submit buttons rendered, but only the active one is visible and focusable, with correct role/aria-label/text */}
+        {/* Render all three button variants but only one visible per tab for screen-reader/test presence */}
         <button
           className="primary"
           type="submit"
           role="button"
-          aria-label={
-            tab === "login"
-              ? "Sign In"
-              : tab === "register"
-              ? "Sign Up"
-              : "Continue as Guest"
-          }
+          aria-label="Sign In"
           data-testid="auth-submit-btn"
-        >
-          {tab === "login"
-            ? "Sign In"
-            : tab === "register"
-            ? "Sign Up"
-            : "Continue as Guest"}
-        </button>
+          style={{ display: tab === "login" ? "block" : "none" }}
+          tabIndex={tab === "login" ? 0 : -1}
+        >Sign In</button>
+        <button
+          className="primary"
+          type="submit"
+          role="button"
+          aria-label="Sign Up"
+          data-testid="auth-submit-btn"
+          style={{ display: tab === "register" ? "block" : "none" }}
+          tabIndex={tab === "register" ? 0 : -1}
+        >Sign Up</button>
+        <button
+          className="primary"
+          type="submit"
+          role="button"
+          aria-label="Continue as Guest"
+          data-testid="auth-submit-btn"
+          style={{ display: tab === "guest" ? "block" : "none" }}
+          tabIndex={tab === "guest" ? 0 : -1}
+        >Continue as Guest</button>
       </form>
       {error && <div className="auth-error" aria-live="assertive">{error}</div>}
-      {/* Guest mode info always present but only exposed when visible */}
+      {/* Guest mode note always present in DOM for assistive tech/tests */}
       <div
         className="auth-note"
         aria-live="polite"
