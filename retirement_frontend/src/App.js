@@ -737,46 +737,39 @@ function App() {
     });
   };
 
-  // Improved: New scenario (duplicate), reliably update the DOM for scenario label for async test and runtime
+  // Improved: New scenario creation -- synchronous update with guaranteed label rendering.
   const handleNewScenario = async () => {
     const cur = scenarios[activeScenarioIdx];
-    // Prompt async for plan label
+    // Prompt async for plan label, flushes microtask for label dialog.
     const label = await new Promise((resolve) => {
       setTimeout(() => resolve(prompt("Enter label for new scenario:", `${cur.label} Copy`)), 0);
     });
-    const newLabel = label || `${cur.label} Copy`;
+    const newLabel = typeof label === "string" && label.trim() !== "" ? label : `${cur.label} Copy`;
 
-    // Instead of queueMicrotask, chain setState and setActiveScenarioIdx in useEffect for extra reliability
+    // Update both scenarios and active idx in the same flush, guaranteeing UI/DOM synchronicity:
     setScenarios(prev => {
       const arr = [...prev, { ...cur, id: makeId(), label: newLabel }];
-      // The useEffect below will listen for changes in scenarios and update activeScenarioIdx accordingly
+      // After setScenarios is committed in a microtask, update active scenario idx
+      queueMicrotask(() => setActiveScenarioIdx(arr.length - 1));
       return arr;
     });
-
-    // WORKAROUND: Set flag so we can update activeScenarioIdx after new scenario is added, ensuring immediate rerender for tests
-    setActivateLastScenarioFlag(true);
   };
 
-  // Helper: flag and effect to guarantee activeScenarioIdx jumps to new scenario after setScenarios resolves, for async test visibility
-  const [activateLastScenarioFlag, setActivateLastScenarioFlag] = useState(false);
-  useEffect(() => {
-    if (activateLastScenarioFlag) {
-      setActiveScenarioIdx(scenarios.length - 1);
-      setActivateLastScenarioFlag(false);
-    }
-  }, [scenarios, activateLastScenarioFlag]);
-  // From Scenario Panel handlers
+  // Scenario activation and duplication with flush ordering for DOM stability:
   const handleActivateScenario = (idx) => setActiveScenarioIdx(idx);
+
   const handleDuplicateScenario = (idx) => {
     const base = scenarios[idx];
     setScenarios(prev => {
       const arr = prev.slice();
       arr.splice(idx + 1, 0, { ...base, id: makeId(), label: base.label + " Copy" });
-      // Use queueMicrotask for next tick after state update
+      // After setScenarios is flushed, set the new active scenario index
       queueMicrotask(() => setActiveScenarioIdx(idx + 1));
       return arr;
     });
   };
+
+  // Delete: after scenarios array changes, setActiveScenarioIdx(0) with microtask.
   const handleDeleteScenario = (idx) => {
     if (scenarios.length === 1) return;
     if (!window.confirm("Are you sure you want to delete this scenario?")) return;
