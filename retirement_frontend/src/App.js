@@ -629,15 +629,23 @@ function App() {
 
   // Project calculation handler
   const handleProject = () => {
-    updateActiveScenario((s) => {
-      const projection = runProjection(s.assets, s.income, s.spending, s.taxes);
-      return {
-        ...s,
-        projection,
-        stats: calcStats(projection)
-      };
+    // We need the UI to reflect the new stats/projection before opening the modal!
+    setScenarios((prev) => {
+      const updated = prev.map((s, i) => {
+        if (i !== activeScenarioIdx) return s;
+        const projection = runProjection(s.assets, s.income, s.spending, s.taxes);
+        return {
+          ...s,
+          projection,
+          stats: calcStats(projection)
+        };
+      });
+      return updated;
     });
-    setShowModal("projection");
+    // Defer showing the modal until React has updated the state & DOM.
+    setTimeout(() => {
+      setShowModal("projection");
+    }, 0);
   };
 
   // New scenario (duplicate)

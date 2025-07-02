@@ -144,8 +144,13 @@ describe('RetireSecure Planner Retirement Projections', () => {
       fireEvent.click(closeBtn);
 
       // Stats update in dashboard: robust label-based lookup and assertion
-      const firstYearStat = await screen.findByText(/first year income/i);
-      expect(firstYearStat.closest('.stat-card')).toHaveTextContent(/\$[0-9,]+/);
+      // Wait for DOM update reflecting latest state
+      const firstYearStat = await screen.findByText(/first year income/i, {}, {timeout: 1200});
+      // Wait for stat card to show a dollar amount after projection is run
+      await waitFor(() => {
+        const textContent = firstYearStat.closest('.stat-card')?.textContent || "";
+        expect(textContent).toMatch(/\$[0-9,]+/);
+      });
     });
 
     test('guest mode disables persistence & shows proper user state', async () => {
