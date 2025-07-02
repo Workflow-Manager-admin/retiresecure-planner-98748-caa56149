@@ -710,6 +710,8 @@ function App() {
 
   // Project calculation handler
   // PUBLIC_INTERFACE
+  const [forceSync, setForceSync] = useState(0); // Used to force a rerender/sync flush
+
   const handleProject = () => {
     // 1. Synchronously update scenario stats and projection
     let updatedScenarios;
@@ -726,9 +728,11 @@ function App() {
       return updatedScenarios;
     });
 
-    // 2. Wait for next React commit to DOM, then open modal so tests/UI see fresh stats instantly.
-    // Use double requestAnimationFrame for strictest UI flush, then setShowModal (React 18+ concurrency proof)
+    // 2. Force a rerender via a state bump to guarantee DOM-driven stat card update
+    // before modal opens (to ensure both user/UI sees the updated stat card)
+    // This works even in StrictMode and concurrent mode
     window.requestAnimationFrame(() => {
+      setForceSync(f => f + 1);
       window.requestAnimationFrame(() => setShowModal("projection"));
     });
   };
@@ -815,6 +819,9 @@ function App() {
   // Layout
   const scenario = scenarios[activeScenarioIdx];
   const primaryColor = COLORS.primary;
+  // Ensure a tightly coupled forceSync state renders; this is effectively a no-op but triggers React reconciliation
+  // eslint-disable-next-line no-unused-vars
+  const _forceSyncNop = forceSync;
 
   return (
     <div className="retire-app">
