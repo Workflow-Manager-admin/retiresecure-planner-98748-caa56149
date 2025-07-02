@@ -865,34 +865,39 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 }
 
 /** User Profile and Settings */
-// PUBLIC_INTERFACE
-// Ensures after registration/login the ProfilePanel displays the name and email as required by tests.
-//
-// - "Name: {user.name}" is always present and visible even if email is not provided
-// - If email exists and is not "", show "Name: {user.name} ({user.email})" (test will match getByText(/name:/i))
-// - "Email: ..." is always visible for getByText(/email:/i) even if empty
-// - Structure and data-testid attributes support accessibility and regression tests
+/**
+ * PUBLIC_INTERFACE
+ * ProfilePanel
+ * - After registration/login, the panel reliably renders:
+ *    - "Name: {user.name}" line (exact structure) for test selector
+ *    - The name value is always present and accessible for tests after registration/login
+ *    - "Email: ..." line always present (even if empty)
+ *    - Structure and data-testid attributes support accessibility and regression tests
+ * @param {object} props - user: {name, email}, onLogout: function
+ */
 function ProfilePanel({ user, onLogout }) {
-  // Defensive defaults: guarantee always a string
-  const displayName = (user && typeof user.name === "string" && user.name.trim() !== "") ? user.name : "N/A";
-  const displayEmail = (user && typeof user.email === "string" && user.email.trim() !== "") ? user.email : "N/A";
-
-  // Always show "Name: ..." line (never blank) for selector reliability
-  // If email is known, show "Name: {user.name} ({user.email})", else just "Name: ..."
+  // Safety: user fields default to "N/A" if missing/blank
+  const displayNameStr =
+    user && typeof user.name === "string" && user.name.trim() !== ""
+      ? user.name
+      : "N/A";
+  const displayEmailStr =
+    user && typeof user.email === "string" && user.email.trim() !== ""
+      ? user.email
+      : "N/A";
+  // Both field + value should be in a single <span> matching test selector
+  // "Name: Testy" line (with 'Name:' as a literal prefix for getByText(/name:/i))
   return (
     <div className="profile-panel" data-testid="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
-        {/* Always present for test getByText(/name:/i) */}
         <span data-testid="profile-user-info">
-          <strong>Name:</strong> {displayName}
-          {(user && typeof user.email === "string" && user.email.trim() !== "") ? ` (${user.email})` : ""}
+          Name: {displayNameStr}
         </span>
       </div>
       <div>
-        {/* Always present for test getByText(/email:/i) */}
         <span data-testid="profile-user-email">
-          <strong>Email:</strong> {displayEmail}
+          Email: {displayEmailStr}
         </span>
       </div>
       <button
