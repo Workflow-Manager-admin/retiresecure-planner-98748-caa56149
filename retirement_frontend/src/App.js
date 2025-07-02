@@ -540,11 +540,16 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
           // Only render scenario label as a pure, direct text node inside <button>. Do NOT add spans/fragments/arrays/etc.
+          // MAINTAINERS: The label button's ONLY CHILD must be a single, uninterrupted text node (string).
+          //   - DO NOT wrap labelText in <>, [], <span>, or any other element.
+          //   - The output DOM MUST be: <button>Scenario Label Here</button> (childNode[0] nodeType = 3)
+          //   - This code explicitly guarantees the child is a string primitive.
           let labelText =
             typeof s.label === "string" ? s.label.trim() : `Scenario ${i + 1}`;
-          // Defensive guarantee: always coerce to string and trim again
           if (typeof labelText !== "string") labelText = String(labelText);
           labelText = labelText.trim();
+
+          // SAFETY: Render labelText as a direct string literal (pure text node) – DO NOT add markup!
           return (
             <li
               className={i === activeIdx ? "active" : ""}
@@ -562,9 +567,9 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 data-scenario-label={labelText}
               >
                 {/* 
-                  DO NOT wrap labelText in any fragment, span, array, or markup!
-                  The next line must render solely as a single DOM text node.
-                  If you change this line, inspect the DOM, run tests, and read the above warning.
+                  STRICT CONTRACT: This button's ONLY child must be a single text node with the scenario label.
+                  Do NOT wrap, array, fragment, or use any markup. (See test + code review warnings above.)
+                  If you ever refactor, double check: DOM child must be Text node, not element/fragment/array.
                 */}
                 {labelText}
               </button>
