@@ -4,17 +4,18 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#1976d2" />
     <meta
       name="description"
-      content="RetireSecure Planner - Minimal, Modern Retirement Income Projection Tool"
+      content="RetireSecure Planner helps users project their retirement income through assets, taxes, social security, and more."
     />
     <title>RetireSecure Planner</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!-- Modal portal root for strict mode/React 18, keep as sibling to #root -->
-    <div id="modal-root" data-testid="modal-root"></div>
+    <!-- Modal root for React 18+ static portal compliance.
+         This must NOT be created dynamically. -->
+    <div id="modal-root"></div>
   </body>
 </html>
