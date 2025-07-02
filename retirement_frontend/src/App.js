@@ -23,6 +23,8 @@ const APP_SECTIONS = [
 
 /** Sidebar Navigation Component */
 function Sidebar({ selected, onSelect, user, onLogout }) {
+  // Robust guest user highlighting for test selectors and UI
+  const isGuest = user && user.isGuest;
   return (
     <nav className="sidebar" aria-label="Main Navigation">
       <div className="sidebar-title">RetireSecure</div>
@@ -44,8 +46,20 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
         ))}
       </ul>
       {user && (
-        <div className="sidebar-user">
-          <div className="user-name">{user.name}</div>
+        <div
+          className="sidebar-user"
+          data-testid={isGuest ? "sidebar-guest-user" : "sidebar-user"}
+          data-user-type={isGuest ? "guest" : "registered"}
+        >
+          <div className="user-name">
+            {isGuest ? (
+              <span style={{ color: "#b17300" }}>
+                Guest
+              </span>
+            ) : (
+              user.name
+            )}
+          </div>
           <button className="sidebar-btn" onClick={onLogout}>
             Logout
           </button>
@@ -479,11 +493,24 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 
 /** User Profile and Settings */
 function ProfilePanel({ user, onLogout }) {
+  const isGuest = user && user.isGuest;
   return (
-    <div className="profile-panel">
+    <div className="profile-panel" data-testid="profile-panel">
       <h2>User Profile</h2>
-      <div><strong>Name:</strong> {user.name}</div>
-      <div><strong>Email:</strong> {user.email || <span style={{color: "#aaa"}}>N/A</span>}</div>
+      <div>
+        <strong>Name:</strong>{" "}
+        {isGuest ? (
+          <span style={{ color: "#b17300" }} data-testid="profile-guest-user">
+            Guest (Guest Mode)
+          </span>
+        ) : (
+          user.name
+        )}
+      </div>
+      <div>
+        <strong>Email:</strong>{" "}
+        {user.email ? user.email : <span style={{ color: "#aaa" }}>N/A</span>}
+      </div>
       <button className="secondary" onClick={onLogout}>Logout</button>
     </div>
   );
@@ -556,7 +583,7 @@ function App() {
       return;
     }
     if (action === "guest") {
-      setUser({ name: "Guest", email: "" });
+      setUser({ name: "Guest", email: "", isGuest: true }); // Explicit guest flag for robust detection
       setShowAuthModal(false);
       return;
     }
@@ -725,40 +752,41 @@ function App() {
         onLogout={() => handleAuthenticate({ action: "logout" })}
       />
 
-      {/* Persistent guest mode banner if user is guest and not in AuthModal */}
-      {/* Unique guest mode banner: only outside AuthModal and on main sections (not Profile) */}
-      {!showAuthModal &&
-        user &&
-        user.name === "Guest" &&
-        selectedSection !== "profile" && (
-          <div
-            className="auth-note"
-            data-testid="guest-mode-info"
-            style={{
-              background: "#fffbe7",
-              color: "#b17300",
-              border: "1.5px solid #ffe7ad",
-              borderRadius: 8,
-              padding: "13px 28px",
-              fontSize: "1.05em",
-              margin: "15px auto 0 auto",
-              maxWidth: 520,
-              boxShadow: "0 2px 7px rgba(110,100,10,0.06)",
-              position: "fixed",
-              left: "50%",
-              transform: "translateX(-50%)",
-              top: 18,
-              zIndex: 250
-            }}
-            aria-live="polite"
-            role="status"
-          >
-            <span role="img" aria-label="Info" style={{ marginRight: 9 }}>
-              ℹ️
-            </span>
-            You are in guest mode. <b>Data will not be saved.</b>
-          </div>
-        )}
+      {/* Persistent guest mode banner for more robust guest detection (removed ambiguous 'Guest' string checks) */}
+      {user 
+        && user.isGuest // Use a non-string-based explicit guest flag
+        && !showAuthModal
+        && selectedSection !== "profile" && (
+        <div
+          className="guest-mode-banner"
+          data-testid="guest-mode-info"
+          style={{
+            background: "#fffbe7",
+            color: "#b17300",
+            border: "1.5px solid #ffe7ad",
+            borderRadius: 8,
+            padding: "13px 28px",
+            fontSize: "1.08em",
+            margin: "15px auto 0 auto",
+            maxWidth: 520,
+            boxShadow: "0 2px 7px rgba(110,100,10,0.06)",
+            position: "fixed",
+            left: "50%",
+            transform: "translateX(-50%)",
+            top: 18,
+            zIndex: 250,
+            fontFamily: "inherit",
+            lineHeight: 1.5
+          }}
+          aria-live="polite"
+          role="alert"
+        >
+          <span role="img" aria-label="Info" style={{ marginRight: 9 }}>
+            ℹ️
+          </span>
+          You are in <b>guest mode</b>. <span style={{ color: "#b17300" }}>Data will not be saved.</span>
+        </div>
+      )}
 
       <main className="main-dashboard" aria-live="polite">
         {/* Top Section */}
