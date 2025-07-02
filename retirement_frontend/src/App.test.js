@@ -135,21 +135,24 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
        * - If validation fails (e.g., negative or missing required input), the asset entry modal remains open, 
        *   and an error is shown. The modal must NOT close in this case.
        * - Only a successful, valid save closes the modal.
-       * This test ensures the modal open/close logic matches the UI rule.
+       * 
+       * Direct Assertion: The modal (dialog) must remain present in the DOM after a validation error.
+       * This test enforces the requirement that the modal does NOT close on a validation error.
        */
       await openEdit('assets');
-      const modal = screen.getByRole('dialog', { name: /edit assets/i });
+      let modal = screen.getByRole('dialog', { name: /edit assets/i });
       const saveBtn = within(modal).getByRole('button', { name: /^save$/i });
       // Attempt an invalid entry (negative value triggers validation error)
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
       fireEvent.click(saveBtn);
 
-      // Modal must remain open after a validation error.
+      // Modal must remain open after a validation error (directly assert dialog is present):
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
       // Try again with no correction; modal should stay open on repeat error
       fireEvent.click(saveBtn);
+      // Direct assertion again on persistence after repeat error
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
       // Now provide valid input and save; modal should then close
