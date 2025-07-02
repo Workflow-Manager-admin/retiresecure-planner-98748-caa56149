@@ -26,7 +26,7 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
   return (
     <nav className="sidebar" aria-label="Main Navigation">
       <div className="sidebar-title">RetireSecure</div>
-      <ul className="sidebar-list">
+      <ul className="sidebar-list" role="list">
         {APP_SECTIONS.map((section) => (
           <li
             key={section.key}
@@ -34,7 +34,9 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
               "sidebar-item" + (selected === section.key ? " selected" : "")
             }
             tabIndex={0}
-            aria-current={selected === section.key}
+            role="listitem"
+            aria-current={selected === section.key ? "true" : undefined}
+            aria-label={section.label}
             onClick={() => onSelect(section.key)}
           >
             {section.label}
@@ -44,7 +46,11 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
       {user && (
         <div className="sidebar-user">
           <div className="user-name">{user.name}</div>
-          <button className="sidebar-btn" onClick={onLogout}>
+          <button
+            className="sidebar-btn"
+            onClick={onLogout}
+            aria-label="Logout"
+          >
             Logout
           </button>
         </div>
@@ -57,7 +63,7 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
 function Modal({ open, onClose, children, title }) {
   if (!open) return null;
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" tabIndex={-1}>
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}>
       <div className="modal-content">
         <div className="modal-header">
           <h2>{title}</h2>
@@ -65,6 +71,7 @@ function Modal({ open, onClose, children, title }) {
             className="modal-close"
             aria-label="Close"
             onClick={onClose}
+            type="button"
           >
             ×
           </button>
@@ -207,9 +214,14 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
     <Modal open={open} onClose={onClose} title={`Edit ${capitalize(type)}`}>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {fields.map((field) => (
-          <label key={field.key} style={{ fontWeight: 500 }}>
+          <label
+            key={field.key}
+            style={{ fontWeight: 500 }}
+            htmlFor={`form-field-${field.key}`}
+          >
             {field.label}
             <input
+              id={`form-field-${field.key}`}
               type={field.type}
               value={form[field.key] || ""}
               onChange={(e) => handleChange(field.key, e.target.value)}
@@ -221,7 +233,13 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
             />
           </label>
         ))}
-        <button className="primary" type="submit">
+        <button
+          className="primary"
+          type="submit"
+          role="button"
+          aria-label="Save"
+          data-testid="save-btn"
+        >
           Save
         </button>
         {error && <div className="form-error">{error}</div>}
@@ -234,18 +252,32 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
 function Dashboard({ stats, data, onEdit, onProject, onNewScenario }) {
   return (
     <div className="dashboard">
-      <h1 style={{ marginBottom: 0 }}>Retirement Overview</h1>
+      <h1 style={{ marginBottom: 0 }} role="heading" aria-level={1}>Retirement Overview</h1>
       <div className="quick-stats">
         <StatCard label="Retirement Age" value={stats.retirementAge || "—"} />
         <StatCard label="First Year Income" value={stats.firstYearIncome ? `$${fmtMoney(stats.firstYearIncome)}` : "—"} />
         <StatCard label="Asset Depletion Risk" value={stats.depletionRisk != null ? `${stats.depletionRisk}%` : "—"} />
       </div>
       <div className="dashboard-actions">
-        <button className="primary" onClick={onProject}>Project Retirement Income</button>
-        <button className="secondary" onClick={onNewScenario}>New Scenario</button>
+        <button
+          className="primary"
+          onClick={onProject}
+          aria-label="Project Retirement Income"
+          role="button"
+        >
+          Project Retirement Income
+        </button>
+        <button
+          className="secondary"
+          onClick={onNewScenario}
+          aria-label="New Scenario"
+          role="button"
+        >
+          New Scenario
+        </button>
       </div>
       <div className="consolidated-data">
-        <h2>Current Summary</h2>
+        <h2 role="heading" aria-level={2}>Current Summary</h2>
         <SummaryTable data={data} onEdit={onEdit} />
       </div>
     </div>
@@ -255,7 +287,7 @@ function Dashboard({ stats, data, onEdit, onProject, onNewScenario }) {
 /** Stat Card in Dashboard */
 function StatCard({ value, label }) {
   return (
-    <div className="stat-card">
+    <div className="stat-card" role="region" aria-label={label}>
       <div className="stat-value">{value}</div>
       <div className="stat-label">{label}</div>
     </div>
@@ -269,9 +301,9 @@ function SummaryTable({ data, onEdit }) {
       <table className="summary-table">
         <thead>
           <tr>
-            <th>Section</th>
-            <th>Details</th>
-            <th>Edit</th>
+            <th scope="col">Section</th>
+            <th scope="col">Details</th>
+            <th scope="col">Edit</th>
           </tr>
         </thead>
         <tbody>
@@ -279,7 +311,13 @@ function SummaryTable({ data, onEdit }) {
             <td>Assets</td>
             <td>{describeAssets(data.assets)}</td>
             <td>
-              <button className="small" onClick={() => onEdit("assets")}>
+              <button
+                className="small"
+                onClick={() => onEdit("assets")}
+                aria-label="Edit Assets"
+                role="button"
+                data-testid="edit-assets-btn"
+              >
                 Edit
               </button>
             </td>
@@ -288,7 +326,13 @@ function SummaryTable({ data, onEdit }) {
             <td>Income</td>
             <td>{describeIncome(data.income)}</td>
             <td>
-              <button className="small" onClick={() => onEdit("income")}>
+              <button
+                className="small"
+                onClick={() => onEdit("income")}
+                aria-label="Edit Income"
+                role="button"
+                data-testid="edit-income-btn"
+              >
                 Edit
               </button>
             </td>
@@ -297,7 +341,13 @@ function SummaryTable({ data, onEdit }) {
             <td>Spending</td>
             <td>{describeSpending(data.spending)}</td>
             <td>
-              <button className="small" onClick={() => onEdit("spending")}>
+              <button
+                className="small"
+                onClick={() => onEdit("spending")}
+                aria-label="Edit Spending"
+                role="button"
+                data-testid="edit-spending-btn"
+              >
                 Edit
               </button>
             </td>
@@ -400,21 +450,49 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
   return (
     <div className="scenarios-panel">
-      <h3>
+      <h3 role="heading" aria-level={3}>
         Scenarios
-        <button className="small" title="Add new scenario" style={{marginLeft:4}} onClick={() => onCreate()}>
+        <button
+          className="small"
+          title="Add new scenario"
+          style={{ marginLeft: 4 }}
+          onClick={() => onCreate()}
+          aria-label="Add Scenario"
+          role="button"
+        >
           +
         </button>
       </h3>
-      <ul className="scenarios-list">
+      <ul className="scenarios-list" role="list">
         {scenarios.map((s, i) => (
-          <li className={i === activeIdx ? "active" : ""} key={s.id}>
-            <button className="scenario-label" onClick={() => onActivate(i)}>
+          <li className={i === activeIdx ? "active" : ""} key={s.id} role="listitem">
+            <button
+              className="scenario-label"
+              onClick={() => onActivate(i)}
+              aria-label={`Scenario ${i + 1} ${s.label ? s.label : ""}`.trim()}
+              role="button"
+            >
               {s.label || `Scenario ${i + 1}`}
             </button>
-            <button className="small" title="Duplicate" onClick={() => onDuplicate(i)}>⎘</button>
+            <button
+              className="small"
+              title="Duplicate"
+              onClick={() => onDuplicate(i)}
+              aria-label="Duplicate"
+              role="button"
+            >
+              ⎘
+            </button>
             {i > 0 && (
-              <button className="small" title="Delete" onClick={() => onDelete(i)}>🗑</button>
+              <button
+                className="small"
+                title="Delete"
+                onClick={() => onDelete(i)}
+                aria-label="Delete"
+                role="button"
+              >
+                🗑
+              </button>
             )}
           </li>
         ))}
@@ -427,10 +505,17 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 function ProfilePanel({ user, onLogout }) {
   return (
     <div className="profile-panel">
-      <h2>User Profile</h2>
+      <h2 role="heading" aria-level={2}>User Profile</h2>
       <div><strong>Name:</strong> {user.name}</div>
-      <div><strong>Email:</strong> {user.email || <span style={{color: "#aaa"}}>N/A</span>}</div>
-      <button className="secondary" onClick={onLogout}>Logout</button>
+      <div><strong>Email:</strong> {user.email || <span style={{ color: "#aaa" }}>N/A</span>}</div>
+      <button
+        className="secondary"
+        onClick={onLogout}
+        aria-label="Logout"
+        role="button"
+      >
+        Logout
+      </button>
     </div>
   );
 }
