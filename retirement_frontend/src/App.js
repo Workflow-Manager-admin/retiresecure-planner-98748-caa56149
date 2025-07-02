@@ -869,7 +869,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
  * PUBLIC_INTERFACE
  * ProfilePanel
  * - After registration/login, the panel reliably renders:
- *    - "Name: {user.name}" line (exact structure) for test selector
+ *    - "Name: {user.name}" line (exact structure) for test selector (text node must include 'Name:' literal prefix and the display name with no element split)
  *    - The name value is always present and accessible for tests after registration/login
  *    - "Email: ..." line always present (even if empty)
  *    - Structure and data-testid attributes support accessibility and regression tests
@@ -885,19 +885,27 @@ function ProfilePanel({ user, onLogout }) {
     user && typeof user.email === "string" && user.email.trim() !== ""
       ? user.email
       : "N/A";
-  // Both field + value should be in a single <span> matching test selector
-  // "Name: Testy" line (with 'Name:' as a literal prefix for getByText(/name:/i))
+  // Match literal text for test selector (unstyled, in a single text node without nested elements)
+  // ARIA: use role and aria-label for accessibility.
   return (
     <div className="profile-panel" data-testid="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
-        <span data-testid="profile-user-info">
-          Name: {displayNameStr}
+        <span
+          data-testid="profile-user-info"
+          aria-label={`User Display Name: ${displayNameStr}`}
+        >
+          {/* Test expects text node "Name: Testy" */}
+          {`Name: ${displayNameStr}`}
         </span>
       </div>
       <div>
-        <span data-testid="profile-user-email">
-          Email: {displayEmailStr}
+        <span
+          data-testid="profile-user-email"
+          aria-label={`User Email: ${displayEmailStr}`}
+        >
+          {/* Test expects text node "Email: ..." */}
+          {`Email: ${displayEmailStr}`}
         </span>
       </div>
       <button
