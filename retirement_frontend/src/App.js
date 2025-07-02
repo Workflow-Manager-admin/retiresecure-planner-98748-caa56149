@@ -36,7 +36,7 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
             tabIndex={0}
             role="listitem"
             aria-current={selected === section.key ? "true" : undefined}
-            aria-label={`Sidebar Navigation: ${section.label}`}
+            aria-label={`Sidebar navigation item: ${section.label}`}
             onClick={() => onSelect(section.key)}
             data-testid={`sidebar-nav-${section.key}`}
           >
@@ -104,7 +104,7 @@ function Modal({ open, onClose, children, title, id }) {
           <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            aria-label={`Close modal: ${title}${id ? ` (${id})` : ""}`}
+            aria-label={`Close ${title} modal${id ? ` (${id})` : ""}`}
             onClick={onClose}
             type="button"
             data-testid={`${dialogId}-close-btn`}
@@ -661,7 +661,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             <button
               className="scenario-label"
               onClick={() => onActivate(i)}
-              aria-label={`Activate Scenario Button: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}${i === activeIdx ? " (Active)" : ""}`}
+              aria-label={`Activate scenario: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}${i === activeIdx ? " (active)" : ""}`}
               role="button"
               id={`activate-scenario-btn-${i}`}
               data-testid={`activate-scenario-btn-${i}`}
@@ -672,7 +672,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               className="small"
               title="Duplicate Scenario"
               onClick={() => onDuplicate(i)}
-              aria-label={`Duplicate Scenario Button: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
+              aria-label={`Duplicate scenario: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
               role="button"
               id={`duplicate-scenario-btn-${i}`}
               data-testid={`duplicate-scenario-btn-${i}`}
@@ -684,7 +684,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 className="small"
                 title="Delete Scenario"
                 onClick={() => onDelete(i)}
-                aria-label={`Delete Scenario Button: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
+                aria-label={`Delete scenario: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
                 role="button"
                 id={`delete-scenario-btn-${i}`}
                 data-testid={`delete-scenario-btn-${i}`}
@@ -1025,7 +1025,7 @@ function App() {
             className="primary"
             onClick={() => setShowModal(null)}
             autoFocus
-            aria-label="Close Retirement Projection Modal"
+            aria-label="Close Retirement Projection modal"
             data-testid="close-projection-btn"
             id="close-projection-btn"
             role="button"
