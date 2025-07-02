@@ -60,18 +60,53 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
 }
 
 /** Modal Dialog wrapper (generic) */
-function Modal({ open, onClose, children, title }) {
+function Modal({ open, onClose, children, title, id }) {
+  // If not open, don't render at all (remove from DOM)
   if (!open) return null;
+  // Use unique id and aria-labelledby for modal dialog
+  const dialogId = id ? id : `modal-${title ? title.replace(/\s+/g, '-').toLowerCase() : Math.random().toString(36).slice(2,8)}`;
+  const labelledById = `${dialogId}-label`;
+
+  useEffect(() => {
+    // Focus trap: focus modal on open
+    const modal = document.getElementById(dialogId);
+    if (modal) modal.focus();
+    // Prevent scroll
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [open, dialogId]);
+
+  // Keyboard Esc closes
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        (onClose || (()=>{}))();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}>
+    <div
+      id={dialogId}
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={labelledById}
+      tabIndex={-1}
+      data-testid={dialogId}
+    >
       <div className="modal-content">
         <div className="modal-header">
-          <h2>{title}</h2>
+          <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            aria-label="Close"
+            aria-label={`Close ${title}`}
             onClick={onClose}
             type="button"
+            data-testid={`${dialogId}-close-btn`}
           >
             ×
           </button>
@@ -100,15 +135,23 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
     }
   };
 
+  // Ensure modal is removed after closure (open=false → Modal unmounts from DOM)
   return (
-    <Modal open={open} onClose={() => {}} title="Welcome to RetireSecure">
+    <Modal
+      open={open}
+      onClose={() => {}} // Login modal cannot be closed except by auth: this disables close action
+      title="Welcome to RetireSecure"
+      id="auth-modal"
+    >
       <div style={{ marginBottom: 20, display: "flex", gap: 8 }}>
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
           onClick={() => setTab("login")}
           type="button"
-          role="button"
-          aria-label="Login"
+          role="tab"
+          aria-selected={tab === "login"}
+          aria-controls="auth-modal"
+          id="tab-login"
         >
           Login
         </button>
@@ -116,8 +159,10 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
           onClick={() => setTab("register")}
           type="button"
-          role="button"
-          aria-label="Register"
+          role="tab"
+          aria-selected={tab === "register"}
+          aria-controls="auth-modal"
+          id="tab-register"
         >
           Register
         </button>
@@ -125,8 +170,10 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
           onClick={() => setTab("guest")}
           type="button"
-          role="button"
-          aria-label="Guest"
+          role="tab"
+          aria-selected={tab === "guest"}
+          aria-controls="auth-modal"
+          id="tab-guest"
         >
           Guest
         </button>
@@ -139,7 +186,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            aria-label="Name"
+            aria-label="Account Name"
             id="auth-name"
           />
         )}
@@ -151,7 +198,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              aria-label="Email"
+              aria-label="User Email"
               id="auth-email"
             />
             <input
@@ -160,7 +207,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
               required
               value={pw}
               onChange={(e) => setPw(e.target.value)}
-              aria-label="Password"
+              aria-label="User Password"
               minLength={4}
               id="auth-password"
             />
@@ -172,11 +219,12 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           role="button"
           aria-label={
             tab === "login"
-              ? "Sign In"
+              ? "Sign In to RetireSecure"
               : tab === "register"
-              ? "Sign Up"
+              ? "Sign Up for RetireSecure"
               : "Continue as Guest"
           }
+          data-testid="auth-submit-btn"
         >
           {tab === "login"
             ? "Sign In"
@@ -185,7 +233,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
             : "Continue as Guest"}
         </button>
       </form>
-      {error && <div className="auth-error">{error}</div>}
+      {error && <div className="auth-error" aria-live="assertive">{error}</div>}
       {tab === "guest" && (
         <div className="auth-note">
           You are continuing as a guest. Data will not be saved.
@@ -233,9 +281,22 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
     onSave(form);
   };
 
+  // Give modal/dialog a unique id for accessibility and test selection
+  const dialogId = `data-entry-modal-${type}`;
+
   return (
-    <Modal open={open} onClose={onClose} title={`Edit ${capitalize(type)}`}>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Edit ${capitalize(type)}`}
+      id={dialogId}
+    >
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: 12 }}
+        aria-label={`Edit ${capitalize(type)} Form`}
+        data-testid={`${dialogId}-form`}
+        >
         {fields.map((field) => (
           <label
             key={field.key}
@@ -251,8 +312,9 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
               placeholder={field.placeholder}
               step={field.type === "number" ? "any" : undefined}
               min={field.type === "number" ? "0" : undefined}
-              aria-label={field.label}
+              aria-label={`${capitalize(type)} - ${field.label}`}
               required={field.required !== false}
+              data-testid={`input-${type}-${field.key}`}
             />
           </label>
         ))}
@@ -260,12 +322,12 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
           className="primary"
           type="submit"
           role="button"
-          aria-label="Save"
+          aria-label={`Save ${capitalize(type)}`}
           data-testid="save-btn"
         >
           Save
         </button>
-        {error && <div className="form-error">{error}</div>}
+        {error && <div className="form-error" aria-live="assertive">{error}</div>}
       </form>
     </Modal>
   );
@@ -382,7 +444,7 @@ function SummaryTable({ data, onEdit }) {
 }
 
 /** Projection Visualization (Chart) */
-function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
+function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId }) {
   // Simple SVG line chart.
   // projection = { years: [2024,...], income: [...], expenses: [...], assets: [...] }
   if (!projection || !projection.years || projection.years.length === 0) {
@@ -411,15 +473,19 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
     return <path d={path} fill="none" stroke={color} strokeWidth="2.5" />;
   };
 
+  // Unique ARIA-label for accessible chart region
+  const regionLabel =
+    `Retirement Projection Chart${projection.label ? `: ${projection.label}` : ""}${chartId ? ` Chart ID ${chartId}` : ""}`;
+
   return (
-    <div className="chart-block">
+    <div className="chart-block" role="region" aria-label={regionLabel} data-testid={chartId ? `projection-chart-${chartId}` : "projection-chart"}>
       <div className="chart-labels">
         <strong>Retirement Projection</strong>
         <span style={{ fontWeight: 400, color: COLORS.accent }}>
           {projection.label || ""}
         </span>
       </div>
-      <svg width={400} height={220} className="projection-chart" role="img" aria-label="Projection Chart">
+      <svg width={400} height={220} className="projection-chart" role="img" aria-label={regionLabel}>
         {/* Axes */}
         <line x1={40} y1={60} x2={40} y2={200} stroke="#CCC" />
         <line x1={40} y1={200} x2={380} y2={200} stroke="#CCC" />
@@ -458,11 +524,11 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
         ))}
       </svg>
       <div className="chart-legend">
-        <span style={{ color: COLORS.primary }}>● Income</span>
-        <span style={{ color: COLORS.error }}>● Expenses</span>
-        <span style={{ color: color }}>● Assets</span>
+        <span style={{ color: COLORS.primary }} aria-label="Income Data Series">● Income</span>
+        <span style={{ color: COLORS.error }} aria-label="Expenses Data Series">● Expenses</span>
+        <span style={{ color: color }} aria-label="Assets Data Series">● Assets</span>
         {comparison && (
-          <span style={{ color: COLORS.secondary }} aria-label="Comparison">● Other Plan</span>
+          <span style={{ color: COLORS.secondary }} aria-label="Comparison Plan">● Other Plan</span>
         )}
       </div>
     </div>
@@ -472,28 +538,32 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
 /** Scenario Comparison Panel */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
   return (
-    <div className="scenarios-panel">
-      <h3 role="heading" aria-level={3}>
+    <div className="scenarios-panel" role="region" aria-label="Scenario Panel" data-testid="scenario-panel">
+      <h3 role="heading" aria-level={3} id="scenarios-heading">
         Scenarios
         <button
           className="small"
           title="Add new scenario"
           style={{ marginLeft: 4 }}
           onClick={() => onCreate()}
-          aria-label="Add Scenario"
+          aria-label="Add New Scenario"
           role="button"
+          id="add-scenario-btn"
+          data-testid="add-scenario-btn"
         >
           +
         </button>
       </h3>
-      <ul className="scenarios-list" role="list">
+      <ul className="scenarios-list" role="list" aria-labelledby="scenarios-heading">
         {scenarios.map((s, i) => (
-          <li className={i === activeIdx ? "active" : ""} key={s.id} role="listitem">
+          <li className={i === activeIdx ? "active" : ""} key={s.id} role="listitem" aria-current={i === activeIdx}>
             <button
               className="scenario-label"
               onClick={() => onActivate(i)}
-              aria-label={`Scenario ${i + 1} ${s.label ? s.label : ""}`.trim()}
+              aria-label={`Activate Scenario ${i + 1}${s.label ? `: ${s.label}` : ""}`}
               role="button"
+              id={`activate-scenario-btn-${i}`}
+              data-testid={`activate-scenario-btn-${i}`}
             >
               {s.label || `Scenario ${i + 1}`}
             </button>
@@ -501,8 +571,10 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               className="small"
               title="Duplicate"
               onClick={() => onDuplicate(i)}
-              aria-label="Duplicate"
+              aria-label={`Duplicate Scenario ${i + 1}${s.label ? `: ${s.label}` : ""}`}
               role="button"
+              id={`duplicate-scenario-btn-${i}`}
+              data-testid={`duplicate-scenario-btn-${i}`}
             >
               ⎘
             </button>
@@ -511,8 +583,10 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 className="small"
                 title="Delete"
                 onClick={() => onDelete(i)}
-                aria-label="Delete"
+                aria-label={`Delete Scenario ${i + 1}${s.label ? `: ${s.label}` : ""}`}
                 role="button"
+                id={`delete-scenario-btn-${i}`}
+                data-testid={`delete-scenario-btn-${i}`}
               >
                 🗑
               </button>
@@ -788,15 +862,27 @@ function App() {
               onDelete={handleDeleteScenario}
               onCreate={handleNewScenario}
             />
-            <div className="scenarios-charts">
+            <div className="scenarios-charts" role="region" aria-label="Scenario Projections">
               {scenarios.map((s, idx) => (
-                <div key={s.id} className={"scenario-chart" + (idx === activeScenarioIdx ? " active" : "")}>
+                <div
+                  key={s.id}
+                  className={"scenario-chart" + (idx === activeScenarioIdx ? " active" : "")}
+                  aria-current={idx === activeScenarioIdx}
+                  aria-label={`Projection for Scenario ${idx + 1} ${s.label || ""}`.trim()}
+                  data-testid={`scenario-chart-${idx}`}
+                >
                   <ProjectionChart
                     projection={s.projection}
                     comparison={idx !== activeScenarioIdx ? scenarios[activeScenarioIdx].projection : null}
                     color={idx === activeScenarioIdx ? COLORS.primary : COLORS.secondary}
+                    chartId={`scenario${idx+1}`}
                   />
-                  <div className="scenario-label-compare">{s.label}</div>
+                  <div
+                    className="scenario-label-compare"
+                    aria-label={`Projection Chart Label - Scenario ${idx + 1}`}
+                  >
+                    {s.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -824,6 +910,7 @@ function App() {
         open={showModal === "projection"}
         onClose={() => setShowModal(null)}
         title="Retirement Projection"
+        id="projection-modal"
       >
         <ProjectionChart
           projection={scenario.projection}
@@ -834,6 +921,8 @@ function App() {
             className="primary"
             onClick={() => setShowModal(null)}
             autoFocus
+            aria-label="Close Retirement Projection"
+            data-testid="close-projection-btn"
           >
             Close
           </button>
