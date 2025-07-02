@@ -133,19 +133,20 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       await openEdit('assets');
       const modal = screen.getByRole('dialog', { name: /edit assets/i });
       const saveBtn = within(modal).getByRole('button', { name: /^save$/i });
-      // Set asset to invalid (negative amount triggers validation)
+      // Attempt an invalid entry (negative value triggers validation error)
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
       fireEvent.click(saveBtn);
 
-      // Modal must remain open on validation error (UI logic: validation failure keeps modal open, error shown)
-      // Updated: We assert modal is still in the DOM after error. This matches UI behavior and requirements.
+      // Modal must remain open after a validation error.
+      // This assertion ensures that validation errors do NOT close the modal.
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Fix form - set asset to valid and save; now modal should close (UI logic: only on valid save modal closes)
+      // Now fix the value with valid input and save; modal should close upon success
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
       fireEvent.click(saveBtn);
       await waitFor(() =>
+        // Modal should now be closed after a successful save
         expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument()
       );
     });
