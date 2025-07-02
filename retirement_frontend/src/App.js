@@ -1028,41 +1028,45 @@ function App() {
       </main>
 
       {/* Data Entry / Projection Modal */}
-      <DataEntryModal
-        open={showModal === "editData"}
-        onClose={() => setShowModal(null)}
-        type={editType}
-        onSave={handleSaveEdit}
-        initial={editInitial}
-        assetLabels={ASSET_LABELS}
-        incomeLabels={INCOME_LABELS}
-        spendingLabels={SPENDING_LABELS}
-      />
-      <Modal
-        open={showModal === "projection"}
-        onClose={() => setShowModal(null)}
-        title="Retirement Projection"
-        id="projection-modal"
-      >
-        <ProjectionChart
-          projection={scenario.projection}
-          comparison={null}
+      {showModal === "editData" && (
+        <DataEntryModal
+          open={true}
+          onClose={() => setShowModal(null)}
+          type={editType}
+          onSave={handleSaveEdit}
+          initial={editInitial}
+          assetLabels={ASSET_LABELS}
+          incomeLabels={INCOME_LABELS}
+          spendingLabels={SPENDING_LABELS}
         />
-        <div style={{ margin: "14px 0" }}>
-          <button
-            className="primary"
-            onClick={() => setShowModal(null)}
-            autoFocus
-            // Unambiguous label specifically for close of Projection modal
-            aria-label="Close Retirement Projection Modal"
-            data-testid="close-projection-btn"
-            id="close-projection-btn"
-            role="button"
-          >
-            Close
-          </button>
-        </div>
-      </Modal>
+      )}
+      {showModal === "projection" && (
+        <Modal
+          open={true}
+          onClose={() => setShowModal(null)}
+          title="Retirement Projection"
+          id="projection-modal"
+        >
+          <ProjectionChart
+            projection={scenario.projection}
+            comparison={null}
+          />
+          <div style={{ margin: "14px 0" }}>
+            <button
+              className="primary"
+              onClick={() => setShowModal(null)}
+              autoFocus
+              // Unambiguous label specifically for close of Projection modal
+              aria-label="Close Retirement Projection Modal"
+              data-testid="close-projection-btn"
+              id="close-projection-btn"
+              role="button"
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Auth Modal */}
       <AuthModal
