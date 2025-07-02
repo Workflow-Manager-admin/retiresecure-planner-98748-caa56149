@@ -129,17 +129,19 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       await waitFor(() => expect(screen.getByRole('dialog', { name: new RegExp(`edit ${type}`, 'i') })).toBeInTheDocument());
     }
 
-    test('asset entry modal validates required fields', async () => {
+    test('asset entry modal validates required fields and does not close on error', async () => {
       await openEdit('assets');
       const modal = screen.getByRole('dialog', { name: /edit assets/i });
       const saveBtn = within(modal).getByRole('button', { name: /^save$/i });
-      // Set asset to invalid
+      // Set asset to invalid (negative amount triggers validation)
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
       fireEvent.click(saveBtn);
+
+      // Modal must remain open on validation error
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
-      // Modal should still be open after validation error
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
-      // Set asset to valid and save
+
+      // Fix form - set asset to valid and save; now modal should close
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
       fireEvent.click(saveBtn);
       await waitFor(() =>

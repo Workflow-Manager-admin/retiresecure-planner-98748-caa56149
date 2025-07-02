@@ -992,6 +992,8 @@ function App() {
     setEditInitial(scenarios[activeScenarioIdx][type]);
     setShowModal("editData");
   };
+  // PUBLIC_INTERFACE
+  // Only closes asset modal on valid save. If validation fails in DataEntryModal, onSave is NOT called.
   const handleSaveEdit = (form) => {
     updateActiveScenario((s) => ({
       ...s,
