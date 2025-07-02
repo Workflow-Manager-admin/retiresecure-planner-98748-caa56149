@@ -487,7 +487,7 @@ function SummaryTable({ data, onEdit }) {
                 id="edit-assets-btn"
                 data-testid="edit-assets-btn"
               >
-                Edit
+                Edit Assets
               </button>
             </td>
           </tr>
@@ -503,7 +503,7 @@ function SummaryTable({ data, onEdit }) {
                 id="edit-income-btn"
                 data-testid="edit-income-btn"
               >
-                Edit
+                Edit Income
               </button>
             </td>
           </tr>
@@ -519,7 +519,7 @@ function SummaryTable({ data, onEdit }) {
                 id="edit-spending-btn"
                 data-testid="edit-spending-btn"
               >
-                Edit
+                Edit Spending
               </button>
             </td>
           </tr>
@@ -637,7 +637,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           id="add-scenario-btn"
           data-testid="add-scenario-btn"
         >
-          Add Scenario
+          +
         </button>
       </h3>
       <ul className="scenarios-list" role="list" aria-labelledby="scenarios-heading">
@@ -646,7 +646,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             <button
               className="scenario-label"
               onClick={() => onActivate(i)}
-              aria-label="Scenario"
+              aria-label={s.label || `Scenario ${i + 1}`}
               role="button"
               id={`activate-scenario-btn-${i}`}
               data-testid={`activate-scenario-btn-${i}`}
