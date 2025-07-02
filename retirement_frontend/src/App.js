@@ -708,11 +708,28 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 
 /** User Profile and Settings */
 function ProfilePanel({ user, onLogout }) {
+  // Render name and email with explicit test IDs and accessible text for test queries and expected UI selectors
   return (
     <div className="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
-      <div><strong>Name:</strong> {user.name}</div>
-      <div><strong>Email:</strong> {user.email || <span style={{ color: "#aaa" }}>N/A</span>}</div>
+      <div>
+        <strong>Name:</strong>
+        <span
+          data-testid="profile-user-name"
+          style={{ marginLeft: 6 }}
+        >
+          {user && user.name ? user.name : <span style={{ color: "#aaa" }}>N/A</span>}
+        </span>
+      </div>
+      <div>
+        <strong>Email:</strong>
+        <span
+          data-testid="profile-user-email"
+          style={{ marginLeft: 6 }}
+        >
+          {user && user.email ? user.email : <span style={{ color: "#aaa" }}>N/A</span>}
+        </span>
+      </div>
       <button
         className="secondary"
         onClick={onLogout}
