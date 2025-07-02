@@ -398,7 +398,7 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
           className="primary"
           type="submit"
           role="button"
-          aria-label={`Save ${capitalize(type)}`}
+          aria-label="Save"
           data-testid="save-btn"
         >
           Save
@@ -1007,7 +1007,7 @@ function App() {
             className="primary"
             onClick={() => setShowModal(null)}
             autoFocus
-            aria-label="Close Retirement Projection modal"
+            aria-label="Close"
             data-testid="close-projection-btn"
             id="close-projection-btn"
             role="button"
