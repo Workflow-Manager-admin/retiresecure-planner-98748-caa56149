@@ -126,9 +126,11 @@ function Modal({ open, onClose, children, title, id }) {
           <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            aria-label="Close"
+            // Ensure unique aria-label for close button in every modal, e.g.: "Close Edit Assets Modal"
+            aria-label={`Close${title ? ` ${title}` : ""} Modal`}
             onClick={onClose}
             type="button"
+            // Make testid unique for each modal
             data-testid={`${dialogId}-close-btn`}
             id={`${dialogId}-close-btn`}
           >
@@ -1030,7 +1032,8 @@ function App() {
             className="primary"
             onClick={() => setShowModal(null)}
             autoFocus
-            aria-label="Close"
+            // Unambiguous label specifically for close of Projection modal
+            aria-label="Close Retirement Projection Modal"
             data-testid="close-projection-btn"
             id="close-projection-btn"
             role="button"
