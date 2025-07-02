@@ -40,6 +40,7 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
             aria-label={section.label}
             role="listitem"
             onClick={() => onSelect(section.key)}
+            data-testid={`sidebar-navitem-${section.key}`}
           >
             {section.label}
           </li>
@@ -51,9 +52,12 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
           data-testid={isGuest ? "sidebar-guest-user" : "sidebar-user"}
           data-user-type={isGuest ? "guest" : "registered"}
         >
-          <div className="user-name">
+          <div
+            className="user-name"
+            data-testid={isGuest ? "sidebar-guest-username" : "sidebar-username"}
+          >
             {isGuest ? (
-              <span style={{ color: "#b17300" }}>
+              <span style={{ color: "#b17300" }} data-testid="sidebar-guest-label">
                 Guest
               </span>
             ) : (
@@ -500,7 +504,7 @@ function ProfilePanel({ user, onLogout }) {
       <div>
         <strong>Name:</strong>{" "}
         {isGuest ? (
-          <span style={{ color: "#b17300" }} data-testid="profile-guest-user">
+          <span style={{ color: "#b17300" }} data-testid="profile-guest-user-label">
             Guest (Guest Mode)
           </span>
         ) : (
@@ -775,6 +779,7 @@ function App() {
         <div
           className="guest-mode-banner"
           data-testid="guest-mode-info"
+          aria-label="guest-mode-banner"
           style={{
             background: "#fffbe7",
             color: "#b17300",
@@ -799,7 +804,9 @@ function App() {
           <span role="img" aria-label="Info" style={{ marginRight: 9 }}>
             ℹ️
           </span>
-          You are in <b>guest mode</b>. <span style={{ color: "#b17300" }}>Data will not be saved.</span>
+          <span data-testid="guest-mode-banner-label">
+            You are in <b>guest mode</b>. <span style={{ color: "#b17300" }}>Data will not be saved.</span>
+          </span>
         </div>
       )}
 

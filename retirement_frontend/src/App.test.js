@@ -163,14 +163,20 @@ describe('RetireSecure Planner Retirement Projections', () => {
       // Guest mode banner is visible using unique testid and async query
       expect(await screen.findByTestId('guest-mode-info')).toBeInTheDocument();
 
-      // "Guest" name present (robust label)
-      expect(screen.getByText(/guest/i)).toBeInTheDocument();
+      // Sidebar guest label present
+      expect(screen.getByTestId('sidebar-guest-label')).toBeInTheDocument();
+      expect(screen.getByTestId('sidebar-guest-username')).toBeInTheDocument();
+
+      // Banner label specific
+      expect(screen.getByTestId('guest-mode-banner-label')).toHaveTextContent(/guest mode/i);
 
       // Profile section should NOT show guest banner (since modal is closed)
-      fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
+      fireEvent.click(screen.getByTestId('sidebar-navitem-profile'));
       await waitFor(() => {
         expect(screen.queryByTestId('guest-mode-info')).not.toBeInTheDocument();
       });
+      // But guest label should appear in profile panel
+      expect(screen.getByTestId('profile-guest-user-label')).toHaveTextContent(/guest/i);
     });
 
     test('multiple scenarios: add, duplicate, compare, and delete', async () => {
