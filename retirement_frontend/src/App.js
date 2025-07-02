@@ -510,16 +510,18 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             data-testid={`scenario-listitem-${i}`}
             aria-current={i === activeIdx ? "true" : undefined}
           >
-            {/* The label is rendered as ONE text node only and gets a specific data-testid */}
+            {/* The label is rendered as a single text node with a unique testid at the button level */}
             <button
               className="scenario-label"
               onClick={() => onActivate(i)}
               aria-label={`Scenario ${s.label || i + 1}`}
               data-testid={`scenario-label-btn-${i}`}
+              data-label={typeof s.label === "string" ? s.label : `Scenario ${i + 1}`} /* For robust query selectors */
             >
-              <span data-testid={`scenario-label-text-${i}`}>
-                {typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
-              </span>
+              {
+                // Render label directly as uninterrupted text node—no fragment, span, etc.
+                typeof s.label === "string" ? s.label : `Scenario ${i + 1}`
+              }
             </button>
             <button
               className="small"
