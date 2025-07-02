@@ -138,8 +138,7 @@ describe('RetireSecure Planner Retirement Projections', () => {
       );
       expect(screen.getByRole('img', { name: /projection chart/i })).toBeInTheDocument();
 
-      // Robust Close: use unique testid for "Close" in modal, async (could be close-retirement-projection-modal or close-projection-chart-button)
-      // Always prefer async testid query for clarity and synchronization.
+      // Robust Close: use unique testid for "Close" in modal, async
       const closeBtn = await screen.findByTestId('close-projection-chart-button');
       fireEvent.click(closeBtn);
 
@@ -191,12 +190,11 @@ describe('RetireSecure Planner Retirement Projections', () => {
       window.prompt = jest.fn(() => "Test Plan 2");
       fireEvent.click(screen.getByRole('button', { name: /^\+$/ }));
 
-      // Await new scenario label to appear robustly (async UI render)
-      await waitFor(async () => {
-        expect(await screen.findByText(/test plan 2/i)).toBeInTheDocument();
-      });
+      // Await new scenario label to appear robustly (sync, then async for full react propagation)
+      // Use direct .findBy instead of async-in-waitFor; keeps test robust on slow CI/test runs.
+      await screen.findByText(/test plan 2/i);
 
-      // Await more than one scenario-label button in the DOM
+      // Await more than one scenario-label button in the DOM for strong state propagation guarantee
       await waitFor(async () => {
         const scenarioLabelButtons = await screen.findAllByRole('button', { name: /scenario/i });
         expect(scenarioLabelButtons.length).toBeGreaterThan(1);

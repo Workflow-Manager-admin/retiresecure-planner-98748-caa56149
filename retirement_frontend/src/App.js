@@ -661,10 +661,8 @@ function App() {
   // Project calculation handler
   // PUBLIC_INTERFACE
   const handleProject = () => {
-    // We want the UI to *always* reflect new stats/projection before showing modal/stat card.
-    // Use React state set with flushSync and an explicit requestAnimationFrame to ensure update
-    
-    // Use batch updates, then explicitly wait for DOM update.
+    // We want the UI to always reflect new stats/projection before showing modal/stat card.
+    // For robust propagation, we use the updater AND ensure modal opening waits for React to re-render.
     setScenarios((prev) => {
       const updated = prev.map((s, i) => {
         if (i !== activeScenarioIdx) return s;
@@ -678,18 +676,16 @@ function App() {
       return updated;
     });
 
-    // Ensure DOM updates (to help e2e/async tests and interactive flows):
-    // 1. Wait for React render phase
-    // 2. After next tick, open modal
+    // Make sure modal opens after React updates the DOM.
+    // Use microtask for higher reliability, then requestAnimationFrame.
     Promise.resolve().then(() => {
-      // Prefer microtask before RAF for test reliability
       window.requestAnimationFrame(() => {
         setShowModal("projection");
       });
     });
   };
 
-  // Improved: New scenario (duplicate), reliably update the DOM for scenario label for test and runtime
+  // Improved: New scenario (duplicate), reliably update the DOM for scenario label for async test and runtime
   const handleNewScenario = async () => {
     const cur = scenarios[activeScenarioIdx];
     // Prompt async for plan label
@@ -697,15 +693,26 @@ function App() {
       setTimeout(() => resolve(prompt("Enter label for new scenario:", `${cur.label} Copy`)), 0);
     });
     const newLabel = label || `${cur.label} Copy`;
-    // The updater below returns the new array AND ensures after update, the latest index is focused
+
+    // Instead of queueMicrotask, chain setState and setActiveScenarioIdx in useEffect for extra reliability
     setScenarios(prev => {
       const arr = [...prev, { ...cur, id: makeId(), label: newLabel }];
-      // Make sure to setActiveScenarioIdx *after* arr is in state
-      // Use a microtask (queueMicrotask) to ensure it comes after setScenarios
-      queueMicrotask(() => setActiveScenarioIdx(arr.length - 1));
+      // The useEffect below will listen for changes in scenarios and update activeScenarioIdx accordingly
       return arr;
     });
+
+    // WORKAROUND: Set flag so we can update activeScenarioIdx after new scenario is added, ensuring immediate rerender for tests
+    setActivateLastScenarioFlag(true);
   };
+
+  // Helper: flag and effect to guarantee activeScenarioIdx jumps to new scenario after setScenarios resolves, for async test visibility
+  const [activateLastScenarioFlag, setActivateLastScenarioFlag] = useState(false);
+  useEffect(() => {
+    if (activateLastScenarioFlag) {
+      setActiveScenarioIdx(scenarios.length - 1);
+      setActivateLastScenarioFlag(false);
+    }
+  }, [scenarios, activateLastScenarioFlag]);
   // From Scenario Panel handlers
   const handleActivateScenario = (idx) => setActiveScenarioIdx(idx);
   const handleDuplicateScenario = (idx) => {
