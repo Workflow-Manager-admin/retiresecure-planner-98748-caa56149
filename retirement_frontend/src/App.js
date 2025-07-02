@@ -511,8 +511,8 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             aria-current={i === activeIdx ? "true" : undefined}
           >
             {/* 
-              Render label as a single, uninterrupted text node (no markup wrapping) for perfect async test/DOM discovery.
-              Attach a robust test id directly to a span wrapping the *entire* label text.
+              Render label as a single, pure text node (no wrapping span, fragment, or markup).
+              Attach a robust data-testid directly to the button for reliable DOM/test access.
             */}
             <button
               className="scenario-label"
@@ -520,13 +520,9 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               aria-label={`Scenario ${s.label || i + 1}`}
               data-testid={`scenario-label-btn-${i}`}
               data-label={typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
-              // Insert a robust test id for the text node by putting a span wrapping all text as fallback
             >
-              {typeof s.label === "string" ? (
-                <span data-testid={`scenario-label-text-${i}`}>{s.label}</span>
-              ) : (
-                <span data-testid={`scenario-label-text-${i}`}>{`Scenario ${i + 1}`}</span>
-              )}
+              {/* Insert label as truly contiguous, pure text */}
+              {typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
             </button>
             <button
               className="small"
