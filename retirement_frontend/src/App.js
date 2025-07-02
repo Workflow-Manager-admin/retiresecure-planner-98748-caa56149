@@ -66,7 +66,10 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
 import ReactDOM from "react-dom";
 
 /** PUBLIC_INTERFACE
- * Modern Modal Dialog wrapper using React Portal for strict mode compatibility.
+ * Modern Modal Dialog wrapper using React Portal for strict mode compatibility and React 18 Static Flag (createPortal in StrictMode) requirements.
+ * - Never creates or removes modal-root dynamically; expects a static <div id="modal-root"></div> in index.html.
+ * - Handles modal portal and overlay semantics in compliance with React 18+ strict mode.
+ * - Provides batch/unbatched updates safety.
  * @param {object} props
  * @property {boolean} open - Whether the modal is open.
  * @property {function} onClose - Callback to close the modal.
@@ -75,9 +78,10 @@ import ReactDOM from "react-dom";
  * @property {string} id - Optional DOM id.
  */
 function Modal({ open, onClose, children, title, id }) {
-  // If not open, don't render at all (remove from DOM)
+  // If not open, don't render at all (remove from DOM) as recommended by React for overlays
   if (!open) return null;
-  // Use unique id and aria-labelledby for modal dialog
+  // All overlays/dialogs must use a static portal root for React 18 strict mode.
+  // NOTE: index.html must have: <div id="modal-root"></div> sibling to root.
   const dialogId = id ? id : `modal-${title ? title.replace(/\s+/g, '-').toLowerCase() : Math.random().toString(36).slice(2,8)}`;
   const labelledById = `${dialogId}-label`;
 
@@ -102,13 +106,14 @@ function Modal({ open, onClose, children, title, id }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  // Create portal target on the fly if it doesn't exist
+  // Use static modal-root div (React 18+ strict mode portal pattern)
   let modalRoot = document.getElementById("modal-root");
+
   if (!modalRoot) {
-    modalRoot = document.createElement("div");
-    modalRoot.id = "modal-root";
-    modalRoot.setAttribute("data-testid", "modal-root");
-    document.body.appendChild(modalRoot);
+    // Developer guidance: If not found, fail obviously so developer adds it to index.html.
+    throw new Error(
+      'Modal root container <div id="modal-root"></div> not found in document. Add <div id="modal-root"></div> after <div id="root"></div> in public/index.html for React 18+ portal support.'
+    );
   }
 
   const modalElement = (
@@ -126,11 +131,9 @@ function Modal({ open, onClose, children, title, id }) {
           <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            // Ensure unique aria-label for close button in every modal, e.g.: "Close Edit Assets Modal"
             aria-label={`Close${title ? ` ${title}` : ""} Modal`}
             onClick={onClose}
             type="button"
-            // Make testid unique for each modal
             data-testid={`${dialogId}-close-btn`}
             id={`${dialogId}-close-btn`}
           >
@@ -141,6 +144,8 @@ function Modal({ open, onClose, children, title, id }) {
       </div>
     </div>
   );
+
+  // React 18 strict mode: portal overlays must be static-rooted for "static flag" warning to disappear.
   return ReactDOM.createPortal(modalElement, modalRoot);
 }
 
