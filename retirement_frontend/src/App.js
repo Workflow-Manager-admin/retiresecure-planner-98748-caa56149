@@ -676,14 +676,18 @@ function App() {
   };
 
   // New scenario (duplicate)
-  const handleNewScenario = () => {
+  const handleNewScenario = async () => {
     const cur = scenarios[activeScenarioIdx];
-    const label = prompt("Enter label for new scenario:", `${cur.label} Copy`);
-    const copy = { ...cur, id: makeId(), label: label || `${cur.label} Copy` };
+    // Capture label input before state update
+    const label = await new Promise((resolve) => {
+      // Support both test (jest.fn) and prod: always resolve in event loop
+      setTimeout(() => resolve(prompt("Enter label for new scenario:", `${cur.label} Copy`)), 0);
+    });
+    const newLabel = label || `${cur.label} Copy`;
+    const copy = { ...cur, id: makeId(), label: newLabel };
     setScenarios((prev) => {
       const arr = [...prev, copy];
-      // Set Active after React flushes DOM: useEffect can listen or, for user/test perception, use callback.
-      // We'll force focus/sync on next tick.
+      // Force state flush before making scenario active:
       setTimeout(() => setActiveScenarioIdx(arr.length - 1), 0);
       return arr;
     });
@@ -696,6 +700,7 @@ function App() {
     setScenarios((prev) => {
       const arr = prev.slice();
       arr.splice(idx + 1, 0, copy);
+      // Force state flush before changing active scenario
       setTimeout(() => setActiveScenarioIdx(idx + 1), 0);
       return arr;
     });

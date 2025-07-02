@@ -184,20 +184,22 @@ describe('RetireSecure Planner Retirement Projections', () => {
 
       window.prompt = jest.fn(() => "Test Plan 2");
       fireEvent.click(screen.getByRole('button', { name: /^\+$/ }));
-      // New scenario label is present, robust async check for label
+      // Wait for the label to appear using async findByText (awaited query)
       expect(await screen.findByText(/test plan 2/i)).toBeInTheDocument();
 
       // All scenario labels are buttons with .scenario-label class
-      // Use label text async to reduce ambiguity, and re-query after mutation
-      await waitFor(() => {
-        const scenarioLabelButtons = screen.getAllByRole('button', { name: /scenario/i });
+      // Use robust awaited label check and re-query after mutation
+      await waitFor(async () => {
+        // Use awaited findAllByRole for label buttons post-mutation
+        const scenarioLabelButtons = await screen.findAllByRole('button', { name: /scenario/i });
         expect(scenarioLabelButtons.length).toBeGreaterThan(1);
       });
 
       // Duplicate first scenario via unique "duplicate" button (title based)
       fireEvent.click(screen.getAllByRole('button', { name: /duplicate/i })[0]);
-      await waitFor(() => {
-        expect(screen.getAllByRole('button', { name: /scenario/i }).length).toBeGreaterThan(1);
+      await waitFor(async () => {
+        const buttons = await screen.findAllByRole('button', { name: /scenario/i });
+        expect(buttons.length).toBeGreaterThan(1); // >1 for confidence scenario appeared
       });
 
       // Delete a scenario with confirmation
