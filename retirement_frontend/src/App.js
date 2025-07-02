@@ -549,7 +549,6 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           if (typeof labelText !== "string") labelText = String(labelText);
           labelText = labelText.trim();
 
-          // SAFETY: Render labelText as a direct string literal (pure text node) – DO NOT add markup!
           return (
             <li
               className={i === activeIdx ? "active" : ""}
@@ -566,12 +565,14 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 data-scenario-id={s.id}
                 data-scenario-label={labelText}
               >
-                {/* 
-                  STRICT CONTRACT: This button's ONLY child must be a single text node with the scenario label.
-                  Do NOT wrap, array, fragment, or use any markup. (See test + code review warnings above.)
-                  If you ever refactor, double check: DOM child must be Text node, not element/fragment/array.
-                */}
-                {labelText}
+                {
+                  // === DO NOT CHANGE THIS CONTRACT ===
+                  // The ONLY child of this <button> must be the pure string labelText, not a fragment, span, array, or element.
+                  // This invariant is **REQUIRED** for async DOM selector precision and robust testing.
+                  // If you refactor, verify by DOM inspection: button.childNodes.length === 1 && nodeType === 3 (Text)
+                  // Code reviewers: If this rule is broken, the PR must *not* be merged.
+                  labelText
+                }
               </button>
               <button
                 className="small"
