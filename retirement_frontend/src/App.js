@@ -486,14 +486,26 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
   );
 }
 
-/** Scenario Comparison Panel
- * GUARANTEE: Scenario label button renders as a contiguous, uninterrupted DOM text node (NO <span>, <Fragment>, array,
- * or inline elements inside the button, nor any `dangerouslySetInnerHTML`). This is a DOM-level requirement, not just a React JSX one!
- * - Directly render the label as a pure string inside <button>, *never* inside any wrapper/fragment/array/etc.
- * - Leave this comment in place and prominently visible to ALL future maintainers: see tests and async queries dependent on this guarantee.
- * - Code reviewers: NEVER approve code that violates this rule.
+/** 
+ * Scenario Comparison Panel
+ * =========================================================================================
+ * ABSOLUTE GUARANTEE: The scenario label button renders its label (e.g. 'Test Plan 2') as a
+ * **pure, uninterrupted text node** inside the <button>, with NO fragment, array, span, or
+ * other markup, wrapper, or element splitting the label.
+ *
+ *    <button>Test Plan 2</button>   // CORRECT: DOM child 0 is a Text node exactly matching labelText
+ *    <button><span>Test Plan 2</span></button>   // WRONG! (No wrappers allowed)
+ *    <button>{"Test " + "Plan 2"}</button>      // CORRECT: Gets flattened into one text node
+ *    <button>{["Test Plan 2"]}</button>         // WRONG! (Array splits node)
+ *    <button><>{labelText}</></button>          // WRONG! (Fragment splits node)
+ *
+ * This strict contract is enforced for testing reliability and robust DOM querying.
+ * - MAINTAINERS: Do not ever wrap labelText in any fragments, spans, arrays, or elements!
+ * - If you refactor, always check the actual DOM: <button>'s only child MUST be a single text node with the scenario label.
+ * - This is required for async DOM test selectors and must NEVER be broken.
  * 
- * If you refactor, inspect with DOM Inspector: scenario label button should show a single Text node (child 0 of <button>), and nothing else.
+ * Code reviewers: If this rule is broken, the PR must not be merged.
+ * =========================================================================================
  */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
   // Helper: generate robust, async-test-safe testId per scenario label.
@@ -527,10 +539,10 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
-          // Only render scenario label as a pure, direct text node inside <button>. Do NOT add spans/fragments/etc.
+          // Only render scenario label as a pure, direct text node inside <button>. Do NOT add spans/fragments/arrays/etc.
           let labelText =
             typeof s.label === "string" ? s.label.trim() : `Scenario ${i + 1}`;
-          // Defensive (should not be needed) - always coerce to string and trim again (guarantee)
+          // Defensive guarantee: always coerce to string and trim again
           if (typeof labelText !== "string") labelText = String(labelText);
           labelText = labelText.trim();
           return (
@@ -549,10 +561,10 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 data-scenario-id={s.id}
                 data-scenario-label={labelText}
               >
-                {/*
-                  ABSOLUTE REQUIREMENT: DO NOT wrap labelText in any array, fragment, span, or inline element! 
-                  It MUST be a single, uninterrupted text node, for async tests and robust DOM queries.
-                  This is tested via DOM Inspector and library tests. See documentation above.
+                {/* 
+                  DO NOT wrap labelText in any fragment, span, array, or markup!
+                  The next line must render solely as a single DOM text node.
+                  If you change this line, inspect the DOM, run tests, and read the above warning.
                 */}
                 {labelText}
               </button>
