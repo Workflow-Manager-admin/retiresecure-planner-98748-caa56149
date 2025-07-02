@@ -210,6 +210,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         />
       </div>
     );
+    // Button label for "Sign In" is used below in the actual button
     submitLabel = "Sign In";
   } else if (tab === "register") {
     panel = (
