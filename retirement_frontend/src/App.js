@@ -378,14 +378,17 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
         (!form[field.key] || isNaN(Number(form[field.key])) || Number(form[field.key]) < 0)
       ) {
         setError(`"${field.label}" must be a non-negative number.`);
+        // Do NOT call onSave; don't close modal on error.
         return;
       }
       if (field.type === "text" && !form[field.key]) {
         setError(`"${field.label}" is required.`);
+        // Do NOT call onSave; don't close modal on error.
         return;
       }
     }
     setError("");
+    // Only call onSave (triggers modal close) if validation passed
     onSave(form);
   };
 
