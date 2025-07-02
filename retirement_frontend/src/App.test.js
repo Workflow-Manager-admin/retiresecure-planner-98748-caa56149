@@ -131,34 +131,33 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
 
     test('asset entry modal validates required fields, stays open on validation error, and closes only on valid save', async () => {
       /**
-       * Expected UI behavior:
-       * - If validation fails (e.g., negative or missing required input), the asset entry modal remains open, 
-       *   and an error is shown. The modal must NOT close in this case.
-       * - Only a successful, valid save closes the modal.
+       * Asset Entry Modal Validation Logic:
        * 
-       * Direct Assertion: The modal (dialog) must remain present in the DOM after a validation error.
-       * This test enforces the requirement that the modal does NOT close on a validation error.
+       * - On validation error (e.g., empty or negative value), the modal REMAINS open and shows an error message.
+       * - The modal closes ONLY on valid save (all required fields valid).
+       * - This test enforces that invalid submits NEVER close the modal, even on repeated error.
        */
       await openEdit('assets');
       let modal = screen.getByRole('dialog', { name: /edit assets/i });
       const saveBtn = within(modal).getByRole('button', { name: /^save$/i });
-      // Attempt an invalid entry (negative value triggers validation error)
+
+      // Try invalid input (negative value)
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
       fireEvent.click(saveBtn);
 
-      // Modal must remain open after a validation error (directly assert dialog is present):
+      // Modal should stay open; error message must appear
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Try again with no correction; modal should stay open on repeat error
+      // Try to submit again (without correcting the error) - should remain open (idem)
       fireEvent.click(saveBtn);
-      // Direct assertion again on persistence after repeat error
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Modal must only close after valid save:
+      // Fix the input, submit valid value, modal closes
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
-      // Ensure the error disappears when valid
       fireEvent.click(saveBtn);
+
+      // Modal should close after successful/valid submit
       await waitFor(() =>
         expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument()
       );
