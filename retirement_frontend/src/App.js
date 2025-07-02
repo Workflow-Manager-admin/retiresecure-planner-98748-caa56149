@@ -122,9 +122,8 @@ function Modal({ open, onClose, children, title, id }) {
 /** Authentication Component (login/register/guest)
  * - Always render Login, Register, and Guest tab buttons,
  * - Buttons must have visible text ("Login", "Register", "Guest"), role="button", correct aria-label for test/ax,
- * - Tab switch only changes visible panel, not DOM presence,
- * - Ensure accessibility/aria and match testing-library queries (esp. 'name' for getByRole).
- * - All main authentication buttons (tab and submit) should always be in the DOM, presence/visibility controlled by focus/state only.
+ * - Only the active authentication panel is present in the DOM (for accessibility and ARIA uniqueness).
+ * - Only the active tab's submit button and panel are rendered.
  */
 function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
   const [tab, setTab] = useState(initialTab);
@@ -143,12 +142,107 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
     }
   };
 
-  // Always render the tab buttons and all panels for test/AT discoverability.
-  // Switch visibility via CSS only, never remove from DOM.
-
-  // Helper for visibility
-  const visStyle = (active) =>
-    active ? { display: "flex", flexDirection: "column", gap: 8 } : { display: "none" };
+  // Prepare currently visible panel
+  let panel = null;
+  let submitLabel = "";
+  if (tab === "login") {
+    panel = (
+      <div
+        role="tabpanel"
+        aria-labelledby="tab-login"
+        id="tabpanel-login"
+        aria-hidden={false}
+        data-testid="login-panel"
+        style={{ display: "flex", flexDirection: "column", gap: 8 }}
+      >
+        <input
+          type="email"
+          placeholder="Email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-label="Email"
+          id="auth-email"
+          autoComplete="username"
+          tabIndex={0}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          required
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          aria-label="Password"
+          minLength={4}
+          id="auth-password"
+          autoComplete="current-password"
+          tabIndex={0}
+        />
+      </div>
+    );
+    submitLabel = "Sign In";
+  } else if (tab === "register") {
+    panel = (
+      <div
+        role="tabpanel"
+        aria-labelledby="tab-register"
+        id="tabpanel-register"
+        aria-hidden={false}
+        data-testid="register-panel"
+        style={{ display: "flex", flexDirection: "column", gap: 8 }}
+      >
+        <input
+          type="text"
+          placeholder="Name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          aria-label="Name"
+          id="auth-name"
+          autoComplete="name"
+          tabIndex={0}
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-label="Email"
+          id="auth-email"
+          autoComplete="username"
+          tabIndex={0}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          required
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          aria-label="Password"
+          minLength={4}
+          id="auth-password"
+          autoComplete="new-password"
+          tabIndex={0}
+        />
+      </div>
+    );
+    submitLabel = "Sign Up";
+  } else if (tab === "guest") {
+    panel = (
+      <div
+        role="tabpanel"
+        aria-labelledby="tab-guest"
+        id="tabpanel-guest"
+        aria-hidden={false}
+        data-testid="guest-panel"
+        style={{ display: "flex", flexDirection: "column", gap: 8 }}
+      >
+        {/* No input for guest */}
+      </div>
+    );
+    submitLabel = "Continue as Guest";
+  }
 
   return (
     <Modal
@@ -157,7 +251,6 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
       title="Welcome to RetireSecure"
       id="auth-modal"
     >
-      {/* Tablist: all buttons present and with specific text/aria as required */}
       <div
         style={{ marginBottom: 20, display: "flex", gap: 8 }}
         role="tablist"
@@ -174,7 +267,6 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           tabIndex={0}
           id="tab-login"
           data-testid="tab-login"
-          style={{}}
         >Login</button>
         <button
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
@@ -187,7 +279,6 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           tabIndex={0}
           id="tab-register"
           data-testid="tab-register"
-          style={{}}
         >Register</button>
         <button
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
@@ -200,139 +291,30 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           tabIndex={0}
           id="tab-guest"
           data-testid="tab-guest"
-          style={{}}
         >Guest</button>
       </div>
-      {/* Each panel is ALWAYS rendered for accessibility/tests, but only one visible. */}
       <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {/* Login Panel */}
-        <div
-          role="tabpanel"
-          aria-labelledby="tab-login"
-          id="tabpanel-login"
-          aria-hidden={tab !== "login"}
-          data-testid="login-panel"
-          style={visStyle(tab === "login")}
-        >
-          <input
-            type="email"
-            placeholder="Email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-label="Email"
-            id="auth-email"
-            autoComplete="username"
-            tabIndex={tab === "login" ? 0 : -1}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            required
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            aria-label="Password"
-            minLength={4}
-            id="auth-password"
-            autoComplete="current-password"
-            tabIndex={tab === "login" ? 0 : -1}
-          />
-        </div>
-        {/* Register Panel */}
-        <div
-          role="tabpanel"
-          aria-labelledby="tab-register"
-          id="tabpanel-register"
-          aria-hidden={tab !== "register"}
-          data-testid="register-panel"
-          style={visStyle(tab === "register")}
-        >
-          <input
-            type="text"
-            placeholder="Name"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            aria-label="Name"
-            id="auth-name"
-            autoComplete="name"
-            tabIndex={tab === "register" ? 0 : -1}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-label="Email"
-            id="auth-email"
-            autoComplete="username"
-            tabIndex={tab === "register" ? 0 : -1}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            required
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            aria-label="Password"
-            minLength={4}
-            id="auth-password"
-            autoComplete="new-password"
-            tabIndex={tab === "register" ? 0 : -1}
-          />
-        </div>
-        {/* Guest Panel */}
-        <div
-          role="tabpanel"
-          aria-labelledby="tab-guest"
-          id="tabpanel-guest"
-          aria-hidden={tab !== "guest"}
-          data-testid="guest-panel"
-          style={visStyle(tab === "guest")}
-        >
-          {/* No input for guest */}
-        </div>
-        {/* ALL submit buttons rendered, but only the active one is visible and focusable, with correct role/aria-label/text */}
-        {/* Render all three button variants but only one visible per tab for screen-reader/test presence */}
+        {panel}
         <button
           className="primary"
           type="submit"
           role="button"
-          aria-label="Sign In"
+          aria-label={submitLabel}
           data-testid="auth-submit-btn"
-          style={{ display: tab === "login" ? "block" : "none" }}
-          tabIndex={tab === "login" ? 0 : -1}
-        >Sign In</button>
-        <button
-          className="primary"
-          type="submit"
-          role="button"
-          aria-label="Sign Up"
-          data-testid="auth-submit-btn"
-          style={{ display: tab === "register" ? "block" : "none" }}
-          tabIndex={tab === "register" ? 0 : -1}
-        >Sign Up</button>
-        <button
-          className="primary"
-          type="submit"
-          role="button"
-          aria-label="Continue as Guest"
-          data-testid="auth-submit-btn"
-          style={{ display: tab === "guest" ? "block" : "none" }}
-          tabIndex={tab === "guest" ? 0 : -1}
-        >Continue as Guest</button>
+          tabIndex={0}
+        >{submitLabel}</button>
       </form>
       {error && <div className="auth-error" aria-live="assertive">{error}</div>}
-      {/* Guest mode note always present in DOM for assistive tech/tests */}
-      <div
-        className="auth-note"
-        aria-live="polite"
-        style={{ display: tab === "guest" ? "block" : "none" }}
-        data-testid="guest-note"
-      >
-        You are continuing as a guest. Data will not be saved.
-      </div>
+      {tab === "guest" && (
+        <div
+          className="auth-note"
+          aria-live="polite"
+          data-testid="guest-note"
+          style={{ display: "block" }}
+        >
+          You are continuing as a guest. Data will not be saved.
+        </div>
+      )}
     </Modal>
   );
 }
