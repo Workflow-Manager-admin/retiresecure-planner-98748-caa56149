@@ -155,8 +155,9 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       // Direct assertion again on persistence after repeat error
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Now provide valid input and save; modal should then close
+      // Modal must only close after valid save:
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
+      // Ensure the error disappears when valid
       fireEvent.click(saveBtn);
       await waitFor(() =>
         expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument()
