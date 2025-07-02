@@ -286,42 +286,51 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         role="tablist"
         aria-label="Authentication Modes"
       >
+        {/* Tab Button: Login */}
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
           type="button"
-          role="tab"
+          role="button"
           aria-label="Login"
           aria-pressed={tab === "login"}
-          aria-selected={tab === "login"}
+          aria-selected={undefined}
           onClick={() => setTab("login")}
           tabIndex={0}
           id="tab-login"
           data-testid="tab-login"
-        >Login</button>
+        >
+          Login
+        </button>
+        {/* Tab Button: Register */}
         <button
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
           type="button"
-          role="tab"
+          role="button"
           aria-label="Register"
           aria-pressed={tab === "register"}
-          aria-selected={tab === "register"}
+          aria-selected={undefined}
           onClick={() => setTab("register")}
           tabIndex={0}
           id="tab-register"
           data-testid="tab-register"
-        >Register</button>
+        >
+          Register
+        </button>
+        {/* Tab Button: Guest */}
         <button
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
           type="button"
-          role="tab"
+          role="button"
           aria-label="Guest"
           aria-pressed={tab === "guest"}
-          aria-selected={tab === "guest"}
+          aria-selected={undefined}
           onClick={() => setTab("guest")}
           tabIndex={0}
           id="tab-guest"
           data-testid="tab-guest"
-        >Guest</button>
+        >
+          Guest
+        </button>
       </div>
       <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {panel}
