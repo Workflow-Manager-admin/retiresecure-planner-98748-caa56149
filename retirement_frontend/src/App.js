@@ -550,13 +550,32 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
-          // STRONG CONTRACT: labelText must be a STRING PRIMITIVE, not an array, fragment, or React element.
-          // The ONLY child of the <button> below MUST be a string primitive.
-          // The DOM must render: <button>Label Here</button> (child nodeType===3)
-          let labelText =
-            typeof s.label === "string" ? s.label.trim() : `Scenario ${i + 1}`;
-          if (typeof labelText !== "string") labelText = String(labelText);
-          labelText = labelText.trim();
+          /**
+           * ENFORCED STRICT CONTRACT: labelText must be a STRING PRIMITIVE (not array, element, or fragment).
+           * 
+           * - The ONLY direct child of the <button> MUST be a string primitive.
+           * - Absolutely no array, fragment, or wrapper of *any* kind.
+           * - Edge-Proof: null/undefined/falsey are stringified as fallback.
+           * - If s.label is missing, empty, null, or non-string, fallback to "Scenario X".
+           *
+           * Please DO NOT break this structure. This is permanently enforced for all time by test automation
+           * and required for correct DOM node querying.
+           */
+          let labelText;
+          if (typeof s.label === "string" && s.label.trim() !== "") {
+            labelText = s.label.trim();
+          } else if (s.label == null || s.label === false) {
+            // null/undefined/false: fallback
+            labelText = `Scenario ${i + 1}`;
+          } else {
+            // Any other non-string value: force to string primitive
+            labelText = String(s.label).trim() || `Scenario ${i + 1}`;
+          }
+
+          // Defensive: never allow an array, fragment, or wrapper here.
+          // Only the primitive string is injected as a direct child.
+          // DO NOT wrap this in [], <></>, <span>, split ternary, or anything else.
+          // DOM must render: <button>Label Value</button> where child is exactly one text node (nodeType===3).
 
           return (
             <li
@@ -566,17 +585,10 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               aria-current={i === activeIdx ? "true" : undefined}
             >
               {/* 
-                MAINTAINER NOTE: This button's label must remain a SINGLE PURE TEXT NODE for test automation compatibility.
-                Do NOT wrap labelText in fragments, arrays, spans, or ANY inline elements—only inject the string primitive directly.
-                The only legitimate DOM structure is: <button>Label Here</button>, where the label is a unified text node (nodeType===3).
-                See above contract for further explanation.
-                
-                --- STRICT LABEL CONTRACT: ---
-                Only a raw string primitive must be injected as a child.
-                <button>{labelText}</button>   // ✅ OK
-                <button>{[labelText]}</button> // ❌ NOK
-                <button><>{labelText}</></button> // ❌ NOK
-                <button><span>{labelText}</span></button> // ❌ NOK
+                MAINTAINER ULTRA-STRICT VOW:
+                This button's label must remain a SINGLE PURE TEXT NODE—never an array, fragment, or React element.
+                If you see a wrapper, array, or the text is not a direct child, this is a VIOLATION.
+                Reviewers: Reject any change that breaks this invariant.
               */}
               <button
                 className="scenario-label"
