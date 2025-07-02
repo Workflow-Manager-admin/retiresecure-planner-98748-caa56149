@@ -854,21 +854,20 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 /** User Profile and Settings */
 function ProfilePanel({ user, onLogout }) {
   // PUBLIC_INTERFACE
-  // This panel shows user display name and email with always-present labels, spans, and test IDs
-  // Required for accessibility and automated test queries (regardless of field presence)
+  // This panel always shows the user's name and email as "Name: [name] ([email])" in a single testable row
+  // for accessible test queries after registration/login.
   const displayName = user && user.name ? user.name : "N/A";
   const displayEmail = user && user.email ? user.email : "N/A";
   return (
     <div className="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
-        <strong>Name:</strong> <span data-testid="profile-user-name" style={{ marginLeft: 0 }}>
-          {displayName}
-        </span>
-      </div>
-      <div>
-        <strong>Email:</strong> <span data-testid="profile-user-email" style={{ marginLeft: 0 }}>
-          {displayEmail}
+        <strong>Name:</strong>{" "}
+        <span
+          data-testid="profile-user-info"
+          style={{ marginLeft: 0 }}
+        >
+          {displayName} ({displayEmail})
         </span>
       </div>
       <button
