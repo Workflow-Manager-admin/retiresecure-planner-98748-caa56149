@@ -407,25 +407,26 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Simple validation: all numbers >= 0 where numeric.
-    // On validation error, modal remains open and displays error (does NOT close).
+    // UI POLICY: On validation error (e.g., missing or invalid value), DO NOT close modal—show error and remain open.
+    // Only on valid submit does the modal close.
+    // This matches the required UX pattern for asset entry.
     for (const field of fields) {
       if (
         field.type === "number" &&
         (!form[field.key] || isNaN(Number(form[field.key])) || Number(form[field.key]) < 0)
       ) {
         setError(`"${field.label}" must be a non-negative number.`);
-        // Do NOT call onSave; don't close modal on error. Modal stays open.
+        // Modal stays open on error.
         return;
       }
       if (field.type === "text" && !form[field.key]) {
         setError(`"${field.label}" is required.`);
-        // Do NOT call onSave; don't close modal on error. Modal stays open.
+        // Modal stays open on error.
         return;
       }
     }
     setError("");
-    // Only call onSave (triggers modal close) if validation passed
+    // Only on successful/valid save does the modal close (calls onSave).
     onSave(form);
   };
 

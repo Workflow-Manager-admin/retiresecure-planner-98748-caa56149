@@ -129,7 +129,14 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       await waitFor(() => expect(screen.getByRole('dialog', { name: new RegExp(`edit ${type}`, 'i') })).toBeInTheDocument());
     }
 
-    test('asset entry modal validates required fields, stays open on error, and closes on valid save', async () => {
+    test('asset entry modal validates required fields, stays open on validation error, and closes only on valid save', async () => {
+      /**
+       * Expected UI behavior:
+       * - If validation fails (e.g., negative or missing required input), the asset entry modal remains open, 
+       *   and an error is shown. The modal must NOT close in this case.
+       * - Only a successful, valid save closes the modal.
+       * This test ensures the modal open/close logic matches the UI rule.
+       */
       await openEdit('assets');
       const modal = screen.getByRole('dialog', { name: /edit assets/i });
       const saveBtn = within(modal).getByRole('button', { name: /^save$/i });
@@ -138,19 +145,17 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       fireEvent.click(saveBtn);
 
       // Modal must remain open after a validation error.
-      // Assert error message appears and modal still exists.
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Try to close and re-submit while error exists: still open
+      // Try again with no correction; modal should stay open on repeat error
       fireEvent.click(saveBtn);
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Now fix the value with valid input and save; modal should close upon success
+      // Now provide valid input and save; modal should then close
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
       fireEvent.click(saveBtn);
       await waitFor(() =>
-        // Modal should now be closed after a successful save
         expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument()
       );
     });
