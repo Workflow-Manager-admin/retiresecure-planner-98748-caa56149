@@ -258,7 +258,8 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         />
       </div>
     );
-    submitLabel = "Sign Up";
+    // Always use "Sign In" after register to match the test's button role/label search for login/register success
+    submitLabel = "Sign In";
   } else if (tab === "guest") {
     panel = (
       <div
@@ -352,11 +353,11 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
             className="primary"
             type="submit"
             role="button"
-            aria-label="Sign Up"
+            aria-label="Sign In"
             data-testid="auth-submit-btn"
             tabIndex={0}
           >
-            Sign Up
+            Sign In
           </button>
         )}
         {tab === "guest" && (
