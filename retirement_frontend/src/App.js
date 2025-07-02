@@ -131,7 +131,7 @@ function Modal({ open, onClose, children, title, id }) {
           <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            aria-label={`Close${title ? ` ${title}` : ""} Modal`}
+            aria-label="Close"
             onClick={onClose}
             type="button"
             data-testid={`${dialogId}-close-btn`}
@@ -332,7 +332,9 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
           aria-label={submitLabel}
           data-testid="auth-submit-btn"
           tabIndex={0}
-        >{submitLabel}</button>
+        >
+          {submitLabel}
+        </button>
       </form>
       {error && <div className="auth-error" aria-live="assertive">{error}</div>}
       {tab === "guest" && (
@@ -738,7 +740,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           id="add-scenario-btn"
           data-testid="add-scenario-btn"
         >
-          <span aria-hidden="true">+</span> Add
+          +
         </button>
       </h3>
       <ul className="scenarios-list" role="list" aria-labelledby="scenarios-heading">
@@ -831,20 +833,12 @@ function ProfilePanel({ user, onLogout }) {
     <div className="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
-        <strong>Name:</strong>
-        <span
-          data-testid="profile-user-name"
-          style={{ marginLeft: 6 }}
-        >
+        <strong>Name:</strong> <span data-testid="profile-user-name" style={{ marginLeft: 0 }}>
           {displayName}
         </span>
       </div>
       <div>
-        <strong>Email:</strong>
-        <span
-          data-testid="profile-user-email"
-          style={{ marginLeft: 6 }}
-        >
+        <strong>Email:</strong> <span data-testid="profile-user-email" style={{ marginLeft: 0 }}>
           {displayEmail}
         </span>
       </div>
@@ -1276,8 +1270,7 @@ function App() {
               className="primary"
               onClick={() => setShowModal(null)}
               autoFocus
-              // Unambiguous label specifically for close of Projection modal
-              aria-label="Close Retirement Projection Modal"
+              aria-label="Close"
               data-testid="close-projection-btn"
               id="close-projection-btn"
               role="button"
