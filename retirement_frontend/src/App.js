@@ -561,6 +561,12 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               data-testid={`scenario-listitem-${i}`}
               aria-current={i === activeIdx ? "true" : undefined}
             >
+              {/* 
+                MAINTAINER NOTE: This button's label must remain a SINGLE PURE TEXT NODE for test automation compatibility.
+                Do NOT wrap labelText in fragments, arrays, spans, or ANY inline elements—only inject the string primitive directly.
+                The only legitimate DOM structure is: <button>Label Here</button>, where the label is a unified text node (nodeType===3).
+                See above contract for further explanation.
+              */}
               <button
                 className="scenario-label"
                 onClick={() => onActivate(i)}
@@ -570,7 +576,6 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 data-scenario-id={s.id}
                 data-scenario-label={labelText}
               >
-                {/* === DO NOT CHANGE THIS CONTRACT: Only a pure, uninterupted string primitive is allowed below. === */}
                 {labelText}
               </button>
               <button
