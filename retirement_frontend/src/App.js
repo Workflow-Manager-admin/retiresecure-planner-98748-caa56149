@@ -36,8 +36,9 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
             tabIndex={0}
             role="listitem"
             aria-current={selected === section.key ? "true" : undefined}
-            aria-label={section.label}
+            aria-label={`Sidebar Navigation: ${section.label}`}
             onClick={() => onSelect(section.key)}
+            data-testid={`sidebar-nav-${section.key}`}
           >
             {section.label}
           </li>
@@ -103,10 +104,11 @@ function Modal({ open, onClose, children, title, id }) {
           <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            aria-label={`Close ${title}`}
+            aria-label={`Close modal: ${title}${id ? ` (${id})` : ""}`}
             onClick={onClose}
             type="button"
             data-testid={`${dialogId}-close-btn`}
+            id={`${dialogId}-close-btn`}
           >
             ×
           </button>
@@ -441,14 +443,18 @@ function Dashboard({ stats, data, onEdit, onProject, onNewScenario }) {
           onClick={onProject}
           aria-label="Project Retirement Income"
           role="button"
+          id="dashboard-project-btn"
+          data-testid="dashboard-project-btn"
         >
           Project Retirement Income
         </button>
         <button
           className="secondary"
           onClick={onNewScenario}
-          aria-label="New Scenario"
+          aria-label="Create New Scenario"
           role="button"
+          id="dashboard-newscenario-btn"
+          data-testid="dashboard-newscenario-btn"
         >
           New Scenario
         </button>
@@ -493,6 +499,7 @@ function SummaryTable({ data, onEdit }) {
                 onClick={() => onEdit("assets")}
                 aria-label="Edit Assets"
                 role="button"
+                id="edit-assets-btn"
                 data-testid="edit-assets-btn"
               >
                 Edit
@@ -508,6 +515,7 @@ function SummaryTable({ data, onEdit }) {
                 onClick={() => onEdit("income")}
                 aria-label="Edit Income"
                 role="button"
+                id="edit-income-btn"
                 data-testid="edit-income-btn"
               >
                 Edit
@@ -523,6 +531,7 @@ function SummaryTable({ data, onEdit }) {
                 onClick={() => onEdit("spending")}
                 aria-label="Edit Spending"
                 role="button"
+                id="edit-spending-btn"
                 data-testid="edit-spending-btn"
               >
                 Edit
@@ -652,7 +661,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             <button
               className="scenario-label"
               onClick={() => onActivate(i)}
-              aria-label={`Activate Scenario ${i + 1}${s.label ? `: ${s.label}` : ""}`}
+              aria-label={`Activate Scenario Button: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}${i === activeIdx ? " (Active)" : ""}`}
               role="button"
               id={`activate-scenario-btn-${i}`}
               data-testid={`activate-scenario-btn-${i}`}
@@ -661,9 +670,9 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             </button>
             <button
               className="small"
-              title="Duplicate"
+              title="Duplicate Scenario"
               onClick={() => onDuplicate(i)}
-              aria-label={`Duplicate Scenario ${i + 1}${s.label ? `: ${s.label}` : ""}`}
+              aria-label={`Duplicate Scenario Button: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
               role="button"
               id={`duplicate-scenario-btn-${i}`}
               data-testid={`duplicate-scenario-btn-${i}`}
@@ -673,9 +682,9 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             {i > 0 && (
               <button
                 className="small"
-                title="Delete"
+                title="Delete Scenario"
                 onClick={() => onDelete(i)}
-                aria-label={`Delete Scenario ${i + 1}${s.label ? `: ${s.label}` : ""}`}
+                aria-label={`Delete Scenario Button: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
                 role="button"
                 id={`delete-scenario-btn-${i}`}
                 data-testid={`delete-scenario-btn-${i}`}
@@ -702,6 +711,8 @@ function ProfilePanel({ user, onLogout }) {
         onClick={onLogout}
         aria-label="Logout"
         role="button"
+        id="profile-logout-btn"
+        data-testid="profile-logout-btn"
       >
         Logout
       </button>
@@ -960,8 +971,9 @@ function App() {
                   key={s.id}
                   className={"scenario-chart" + (idx === activeScenarioIdx ? " active" : "")}
                   aria-current={idx === activeScenarioIdx}
-                  aria-label={`Projection for Scenario ${idx + 1} ${s.label || ""}`.trim()}
+                  aria-label={`Scenario Projection Chart: Scenario ${idx + 1}${s.label ? ` (${s.label})` : ""}${idx === activeScenarioIdx ? " (Active)" : ""}`}
                   data-testid={`scenario-chart-${idx}`}
+                  role="region"
                 >
                   <ProjectionChart
                     projection={s.projection}
@@ -1013,8 +1025,10 @@ function App() {
             className="primary"
             onClick={() => setShowModal(null)}
             autoFocus
-            aria-label="Close Retirement Projection"
+            aria-label="Close Retirement Projection Modal"
             data-testid="close-projection-btn"
+            id="close-projection-btn"
+            role="button"
           >
             Close
           </button>
