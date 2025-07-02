@@ -15,169 +15,189 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       localStorage.clear();
     });
 
-    test('shows login, registration and guest mode tabs', () => {
+    test('shows login, registration and guest mode tabs', async () => {
       render(<App />);
       // Modal appears on fresh load
-      expect(getModal()).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /guest/i })).toBeInTheDocument();
+      expect(await screen.findByRole('dialog', { name: /welcome to retiresecure/i })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: /^login$/i })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: /^register$/i })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: /^guest$/i })).toBeInTheDocument();
     });
 
-    test('login fails with invalid credentials and shows error', () => {
+    test('login fails with invalid credentials and shows error', async () => {
       render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /login/i }));
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'foo@example.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'badpw' } });
+      fireEvent.click(await screen.findByRole('button', { name: /^login$/i }));
+      fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'foo@example.com' } });
+      fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'badpw' } });
       fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
-      expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
+      expect(await screen.findByText(/invalid email or password/i)).toBeInTheDocument();
     });
 
-    test('can register a new user and then login', () => {
+    test('can register a new user and then login', async () => {
       render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /register/i }));
-      fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Alice' } });
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'alice@test.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw1234' } });
+      fireEvent.click(await screen.findByRole('button', { name: /^register$/i }));
+      fireEvent.change(screen.getByLabelText(/^name$/i), { target: { value: 'Alice' } });
+      fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'alice@test.com' } });
+      fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'pw1234' } });
       fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
 
-      expect(screen.queryByRole('dialog', { name: /welcome to retiresecure/i })).not.toBeInTheDocument();
+      // Modal should close, user should appear
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: /welcome to retiresecure/i })).not.toBeInTheDocument()
+      );
       expect(screen.getByText(/alice/i)).toBeInTheDocument();
 
       // Log out and log back in works
-      fireEvent.click(screen.getByRole('button', { name: /logout/i }));
-      expect(screen.getByRole('dialog', { name: /welcome to retiresecure/i })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /^logout$/i }));
+      expect(await screen.findByRole('dialog', { name: /welcome to retiresecure/i })).toBeInTheDocument();
 
       // Now try login that succeeds
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'alice@test.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw1234' } });
+      fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'alice@test.com' } });
+      fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'pw1234' } });
       fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-      expect(screen.queryByRole('dialog', { name: /welcome to retiresecure/i })).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: /welcome to retiresecure/i })).not.toBeInTheDocument()
+      );
       expect(screen.getByText(/alice/i)).toBeInTheDocument();
     });
 
-    test('guest mode disables persistence and displays note', () => {
+    test('guest mode disables persistence and displays note', async () => {
       render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^guest$/i }));
       fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
       expect(screen.getByText(/guest/i)).toBeInTheDocument();
     });
   });
 
   // ---------- Dashboard, Navigation, and User Profile -----------
   describe('Main Dashboard and Sidebar Navigation', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       localStorage.clear();
       render(<App />);
       // Use guest by default to skip login for navigation/flows
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^guest$/i }));
       fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
     });
 
-    test('shows main dashboard with quick stats/cards', () => {
-      expect(screen.getByRole('heading', { name: /retirement overview/i })).toBeInTheDocument();
+    test('shows main dashboard with quick stats/cards', async () => {
+      expect(await screen.findByRole('heading', { name: /retirement overview/i })).toBeInTheDocument();
       expect(screen.getByText(/retirement age/i)).toBeInTheDocument();
       expect(screen.getByText(/first year income/i)).toBeInTheDocument();
       expect(screen.getByText(/asset depletion risk/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /project retirement income/i })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: /project retirement income/i })).toBeInTheDocument();
     });
 
-    test('sidebar navigates between dashboard and profile', () => {
-      fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
-      expect(screen.getByRole('heading', { name: /user profile/i })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('listitem', { name: /dashboard/i }));
-      expect(screen.getByRole('heading', { name: /retirement overview/i })).toBeInTheDocument();
+    test('sidebar navigates between dashboard and profile', async () => {
+      fireEvent.click(screen.getByRole('listitem', { name: /^profile$/i }));
+      expect(await screen.findByRole('heading', { name: /user profile/i })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('listitem', { name: /^dashboard$/i }));
+      expect(await screen.findByRole('heading', { name: /retirement overview/i })).toBeInTheDocument();
     });
   });
 
   // ---------- Data Input Forms and Modal Validations -----------
   describe('Data Input Forms for Assets, Income, Spending', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       localStorage.clear();
       render(<App />);
-      // Guest for simplicity
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^guest$/i }));
       fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
     });
-    function openEdit(type) {
+    async function openEdit(type) {
       // Find and click edit button for assets, income, or spending
-      fireEvent.click(screen.getAllByRole('button', { name: /edit/i }).find(btn =>
-        btn.closest('tr').firstChild.textContent.toLowerCase() === type
-      ));
+      let label;
+      if (type === 'assets') label = /^edit assets$/i;
+      else if (type === 'income') label = /^edit income$/i;
+      else if (type === 'spending') label = /^edit spending$/i;
+      const allEditBtns = screen.getAllByRole('button', { name: /edit/i });
+      for (let btn of allEditBtns) {
+        try {
+          const row = btn.closest('tr');
+          if (
+            row &&
+            row.querySelector('td') &&
+            row.querySelector('td').textContent.trim().toLowerCase() === type
+          ) {
+            fireEvent.click(btn);
+            break;
+          }
+        } catch {}
+      }
+      // Wait for modal to appear
+      await waitFor(() => expect(screen.getByRole('dialog', { name: new RegExp(`edit ${type}`, 'i') })).toBeInTheDocument());
     }
 
-    test('asset entry modal validates required fields', () => {
-      openEdit('assets');
+    test('asset entry modal validates required fields', async () => {
+      await openEdit('assets');
       const modal = screen.getByRole('dialog', { name: /edit assets/i });
-      const saveBtn = within(modal).getByRole('button', { name: /save/i });
+      const saveBtn = within(modal).getByRole('button', { name: /^save$/i });
       // Set asset to invalid
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
       fireEvent.click(saveBtn);
-      expect(screen.getByText(/must be a non-negative number/i)).toBeInTheDocument();
+      expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       // Set asset to valid and save
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
       fireEvent.click(saveBtn);
-      expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument()
+      );
     });
 
-    test('income/spending modals require valid numbers and text', () => {
-      openEdit('income');
+    test('income/spending modals require valid numbers and text', async () => {
+      await openEdit('income');
       const modal = screen.getByRole('dialog', { name: /edit income/i });
       fireEvent.change(within(modal).getByLabelText(/current salary/i), { target: { value: '' } });
-      fireEvent.click(within(modal).getByRole('button', { name: /save/i }));
-      expect(screen.getByText(/must be a non-negative number/i)).toBeInTheDocument();
+      fireEvent.click(within(modal).getByRole('button', { name: /^save$/i }));
+      expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
 
-      // spending
-      openEdit('spending');
+      await openEdit('spending');
       const sModal = screen.getByRole('dialog', { name: /edit spending/i });
       fireEvent.change(within(sModal).getByLabelText(/housing/i), { target: { value: -10 } });
-      fireEvent.click(within(sModal).getByRole('button', { name: /save/i }));
-      expect(screen.getByText(/must be a non-negative number/i)).toBeInTheDocument();
+      fireEvent.click(within(sModal).getByRole('button', { name: /^save$/i }));
+      expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
     });
   });
 
   // ---------- Projection Logic/UI Integration -----------
   describe('Projection Modal, Chart, and Calculation', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       localStorage.clear();
       render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^guest$/i }));
       fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
     });
 
     test('projects income and updates dashboard stats', async () => {
-      const projBtn = screen.getByRole('button', { name: /project retirement income/i });
+      const projBtn = await screen.findByRole('button', { name: /project retirement income/i });
       fireEvent.click(projBtn);
 
       await waitFor(() =>
         expect(screen.getByRole('dialog', { name: /retirement projection/i })).toBeInTheDocument()
       );
-      expect(screen.getByRole('img', { name: /projection chart/i })).toBeInTheDocument();
+      expect(await screen.findByRole('img', { name: /projection chart/i })).toBeInTheDocument();
       // Close button closes modal
-      fireEvent.click(screen.getByRole('button', { name: /close/i }));
-      expect(screen.queryByRole('dialog', { name: /retirement projection/i })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: /retirement projection/i })).not.toBeInTheDocument());
     });
   });
 
   // ---------- Scenario Comparison -----------
   describe('Scenario Comparison Flows', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       localStorage.clear();
       render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^guest$/i }));
       fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
     });
 
-    test('can add, switch, and delete scenarios', () => {
+    test('can add, switch, and delete scenarios', async () => {
       // Go to scenarios tab
-      fireEvent.click(screen.getByRole('listitem', { name: /scenarios/i }));
-      expect(screen.getByRole('heading', { name: /scenarios/i })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('listitem', { name: /^scenarios$/i }));
+      expect(await screen.findByRole('heading', { name: /scenarios/i })).toBeInTheDocument();
 
       // Add scenario
-      fireEvent.click(screen.getByRole('button', { name: /\+/i }));
-      // Simulate user prompt
       window.prompt = jest.fn(() => "My Plan 2");
       fireEvent.click(screen.getByRole('button', { name: /\+/i }));
       expect(screen.getAllByRole('button', { name: /scenario/i }).length).toBeGreaterThan(1);
@@ -196,8 +216,8 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       expect(window.confirm).toHaveBeenCalled();
     });
 
-    test('chart overlays comparison between scenarios', () => {
-      fireEvent.click(screen.getByRole('listitem', { name: /scenarios/i }));
+    test('chart overlays comparison between scenarios', async () => {
+      fireEvent.click(screen.getByRole('listitem', { name: /^scenarios$/i }));
       // There should be an Assets/Income/Expenses chart in each scenario display
       expect(screen.getAllByRole('img', { name: /projection chart/i }).length).toBeGreaterThan(0);
     });
@@ -205,23 +225,23 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
 
   // ---------- User Profile -----------
   describe('User Profile Panel', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       localStorage.clear();
       render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /register/i }));
-      fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Testy' } });
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@x.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw1111' } });
+      fireEvent.click(await screen.findByRole('button', { name: /^register$/i }));
+      fireEvent.change(screen.getByLabelText(/^name$/i), { target: { value: 'Testy' } });
+      fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 't@x.com' } });
+      fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'pw1111' } });
       fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
     });
 
-    test('shows correct user info and allows logout', () => {
-      fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
-      expect(screen.getByText(/name:/i)).toHaveTextContent('Testy');
+    test('shows correct user info and allows logout', async () => {
+      fireEvent.click(screen.getByRole('listitem', { name: /^profile$/i }));
+      expect(await screen.findByText(/name:/i)).toHaveTextContent('Testy');
       expect(screen.getByText(/email:/i)).toHaveTextContent('t@x.com');
       // Log out returns to auth screen
-      fireEvent.click(screen.getByRole('button', { name: /logout/i }));
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /^logout$/i }));
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
     });
   });
 
