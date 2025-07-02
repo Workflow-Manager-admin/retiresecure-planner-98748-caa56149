@@ -139,13 +139,13 @@ describe('RetireSecure Planner Retirement Projections', () => {
       expect(screen.getByRole('img', { name: /projection chart/i })).toBeInTheDocument();
 
       // Robust Close: use unique testid for "Close" in modal, async (could be close-retirement-projection-modal or close-projection-chart-button)
-      // Prefer testid "close-projection-chart-button" for button in Modal's footer.
+      // Always prefer async testid query for clarity and synchronization.
       const closeBtn = await screen.findByTestId('close-projection-chart-button');
       fireEvent.click(closeBtn);
 
-      // Stats update in dashboard: check stat card by first year income label, assert number exists
-      const firstYearStat = screen.getByText(/first year income/i).closest('.stat-card');
-      expect(firstYearStat).toHaveTextContent(/\$[0-9,]+/);
+      // Stats update in dashboard: robust label-based lookup and assertion
+      const firstYearStat = await screen.findByText(/first year income/i);
+      expect(firstYearStat.closest('.stat-card')).toHaveTextContent(/\$[0-9,]+/);
     });
 
     test('guest mode disables persistence & shows proper user state', async () => {
@@ -155,15 +155,17 @@ describe('RetireSecure Planner Retirement Projections', () => {
       const continueBtn = await screen.findByTestId('continue-as-guest-button');
       fireEvent.click(continueBtn);
 
-      // Guest mode banner is visible
+      // Guest mode banner is visible using unique testid and async query
       expect(await screen.findByTestId('guest-mode-info')).toBeInTheDocument();
 
-      // "Guest" name present
+      // "Guest" name present (robust label)
       expect(screen.getByText(/guest/i)).toBeInTheDocument();
 
       // Profile section should NOT show guest banner (since modal is closed)
       fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
-      expect(screen.queryByTestId('guest-mode-info')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByTestId('guest-mode-info')).not.toBeInTheDocument();
+      });
     });
 
     test('multiple scenarios: add, duplicate, compare, and delete', async () => {
@@ -174,23 +176,27 @@ describe('RetireSecure Planner Retirement Projections', () => {
 
       // Go to scenarios tab and manipulate scenarios
       fireEvent.click(screen.getByRole('listitem', { name: /scenarios/i }));
+
       window.prompt = jest.fn(() => "Test Plan 2");
       fireEvent.click(screen.getByRole('button', { name: /^\+$/ }));
-      // New scenario label is present; robust selector
+      // New scenario label is present, robust async check for label
       expect(await screen.findByText(/test plan 2/i)).toBeInTheDocument();
 
-      // Robust scenario label assertion: get all scenario labels (they are buttons with .scenario-label)
-      const scenarioLabelButtons = screen.getAllByRole('button', { name: /scenario/i });
-      expect(scenarioLabelButtons.length).toBeGreaterThan(1);
+      // All scenario labels are buttons with .scenario-label class
+      // Use label text async to reduce ambiguity, and re-query after mutation
+      await waitFor(() => {
+        const scenarioLabelButtons = screen.getAllByRole('button', { name: /scenario/i });
+        expect(scenarioLabelButtons.length).toBeGreaterThan(1);
+      });
 
-      // Duplicate first scenario via unique "duplicate" button (test by title)
+      // Duplicate first scenario via unique "duplicate" button (title based)
       fireEvent.click(screen.getAllByRole('button', { name: /duplicate/i })[0]);
-      // The number of scenario-label buttons increases
-      expect(screen.getAllByRole('button', { name: /scenario/i }).length).toBeGreaterThan(1);
+      await waitFor(() => {
+        expect(screen.getAllByRole('button', { name: /scenario/i }).length).toBeGreaterThan(1);
+      });
 
       // Delete a scenario with confirmation
       window.confirm = jest.fn(() => true);
-      // Find a delete button (not the first, as first scenario can't be deleted)
       const deleteBtns = screen.getAllByRole('button', { name: /delete/i });
       if (deleteBtns.length >= 2) { fireEvent.click(deleteBtns[1]); }
       expect(window.confirm).toHaveBeenCalled();
