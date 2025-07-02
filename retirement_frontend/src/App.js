@@ -486,7 +486,7 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
   );
 }
 
-/** 
+/**
  * Scenario Comparison Panel
  * =========================================================================================
  * ABSOLUTE GUARANTEE: The scenario label button renders its label (e.g. 'Test Plan 2') as a
@@ -500,11 +500,13 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
  *    <button><>{labelText}</></button>          // WRONG! (Fragment splits node)
  *
  * This strict contract is enforced for testing reliability and robust DOM querying.
- * - MAINTAINERS: Do not ever wrap labelText in any fragments, spans, arrays, or elements!
- * - If you refactor, always check the actual DOM: <button>'s only child MUST be a single text node with the scenario label.
- * - This is required for async DOM test selectors and must NEVER be broken.
- * 
- * Code reviewers: If this rule is broken, the PR must not be merged.
+ *
+ *  === MAINTAINERS: ===
+ *  The ONLY direct child of the scenario label <button> **must be the pure string labelText with NO JSX wrapper**.
+ *  Do NOT use arrays, fragments, <span>, or any other markup around labelText—only a raw string literal.
+ *  This is **REQUIRED** for async DOM selectors and robust testing.
+ *  Code reviewers: If you break or wrap labelText, the PR must not be merged.
+ *  After editing: inspect DOM: <button>'s only child must be nodeType===3 (Text) and label exactly as expected.
  * =========================================================================================
  */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
@@ -539,11 +541,12 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
-          // Only render scenario label as a pure, direct text node inside <button>. Do NOT add spans/fragments/arrays/etc.
-          // MAINTAINERS: The label button's ONLY CHILD must be a single, uninterrupted text node (string).
-          //   - DO NOT wrap labelText in <>, [], <span>, or any other element.
-          //   - The output DOM MUST be: <button>Scenario Label Here</button> (childNode[0] nodeType = 3)
-          //   - This code explicitly guarantees the child is a string primitive.
+          // ----------------------------------------------------------------
+          // MAINTAINERS: DO NOT WRAP labelText IN ANY JSX (NO <>, [], <span>)
+          // The ONLY child of the <button> below MUST be a string primitive.
+          // The output DOM must be: <button>Label Here</button>
+          // Strict contract for robust DOM test selectors!
+          // ----------------------------------------------------------------
           let labelText =
             typeof s.label === "string" ? s.label.trim() : `Scenario ${i + 1}`;
           if (typeof labelText !== "string") labelText = String(labelText);
@@ -565,14 +568,8 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 data-scenario-id={s.id}
                 data-scenario-label={labelText}
               >
-                {
-                  // === DO NOT CHANGE THIS CONTRACT ===
-                  // The ONLY child of this <button> must be the pure string labelText, not a fragment, span, array, or element.
-                  // This invariant is **REQUIRED** for async DOM selector precision and robust testing.
-                  // If you refactor, verify by DOM inspection: button.childNodes.length === 1 && nodeType === 3 (Text)
-                  // Code reviewers: If this rule is broken, the PR must *not* be merged.
-                  labelText
-                }
+                {/* === DO NOT CHANGE THIS CONTRACT: Only a pure string! === */}
+                {labelText}
               </button>
               <button
                 className="small"
