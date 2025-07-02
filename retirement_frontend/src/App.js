@@ -854,30 +854,22 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 /** User Profile and Settings */
 function ProfilePanel({ user, onLogout }) {
   // PUBLIC_INTERFACE
-  // This panel presents the user's name and email exactly as "Name: [Name]", followed by an "Email: [email]" line,
-  // so test queries for either "Name: Testy" or "Email: t@x.com" (as in test assertions) will always match.
+  // Ensures ProfilePanel always renders the exact selector+text combo required by the tests:
+  // "Name:" (text with user name) and "Email:" (text with user email) both in a visible span,
+  // plus unique data-testid selectors for both name and email.
+  // This guarantees assertions such as .getByText(/name:/i).toHaveTextContent("Testy") will pass.
   const displayName = user && user.name ? user.name : "N/A";
   const displayEmail = user && user.email ? user.email : "N/A";
   return (
-    <div className="profile-panel">
+    <div className="profile-panel" data-testid="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
-        <strong>Name:</strong>{" "}
-        <span
-          data-testid="profile-user-info"
-          style={{ marginLeft: 0 }}
-        >
-          {displayName}
-        </span>
+        {/* Use exact text "Name: <user>" for test compatibility */}
+        <span data-testid="profile-user-info"><strong>Name:</strong> {displayName}</span>
       </div>
       <div>
-        <strong>Email:</strong>{" "}
-        <span
-          data-testid="profile-user-email"
-          style={{ marginLeft: 0 }}
-        >
-          {displayEmail}
-        </span>
+        {/* Use exact text "Email: <email>" for test compatibility */}
+        <span data-testid="profile-user-email"><strong>Email:</strong> {displayEmail}</span>
       </div>
       <button
         className="secondary"
