@@ -51,6 +51,9 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
             className="sidebar-btn"
             onClick={onLogout}
             aria-label="Logout"
+            type="button"
+            id="sidebar-logout-btn"
+            data-testid="sidebar-logout-btn"
           >
             Logout
           </button>
@@ -104,13 +107,13 @@ function Modal({ open, onClose, children, title, id }) {
           <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            aria-label={title ? `Close ${title} modal` : "Close"}
+            aria-label="Close"
             onClick={onClose}
             type="button"
             data-testid={`${dialogId}-close-btn`}
             id={`${dialogId}-close-btn`}
           >
-            ×
+            Close
           </button>
         </div>
         <div className="modal-body">{children}</div>
@@ -626,7 +629,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
         Scenarios
         <button
           className="small"
-          title="Add new scenario"
+          title="Add Scenario"
           style={{ marginLeft: 4 }}
           onClick={() => onCreate()}
           aria-label="Add Scenario"
@@ -634,7 +637,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           id="add-scenario-btn"
           data-testid="add-scenario-btn"
         >
-          +
+          Add Scenario
         </button>
       </h3>
       <ul className="scenarios-list" role="list" aria-labelledby="scenarios-heading">
@@ -652,26 +655,26 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             </button>
             <button
               className="small"
-              title="Duplicate Scenario"
+              title="Duplicate"
               onClick={() => onDuplicate(i)}
-              aria-label="Duplicate Scenario"
+              aria-label="Duplicate"
               role="button"
               id={`duplicate-scenario-btn-${i}`}
               data-testid={`duplicate-scenario-btn-${i}`}
             >
-              ⎘
+              Duplicate
             </button>
             {i > 0 && (
               <button
                 className="small"
-                title="Delete Scenario"
+                title="Delete"
                 onClick={() => onDelete(i)}
-                aria-label="Delete Scenario"
+                aria-label="Delete"
                 role="button"
                 id={`delete-scenario-btn-${i}`}
                 data-testid={`delete-scenario-btn-${i}`}
               >
-                🗑
+                Delete
               </button>
             )}
           </li>
@@ -965,7 +968,7 @@ function App() {
                   />
                   <div
                     className="scenario-label-compare"
-                    aria-label={`Projection Chart Label - Scenario ${idx + 1}`}
+                    aria-label="Scenario Label"
                   >
                     {s.label}
                   </div>
