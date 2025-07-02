@@ -886,7 +886,13 @@ function App() {
       ...s,
       [editType]: form
     }));
+    // Fully unmount and force modal DOM removal
     setShowModal(null);
+    setTimeout(() => {
+      // Clear out initial state so re-opening remounts a new modal instance
+      setEditInitial(null);
+      setEditType(null);
+    }, 0);
   };
 
   // Project calculation handler
@@ -1028,10 +1034,16 @@ function App() {
       </main>
 
       {/* Data Entry / Projection Modal */}
-      {showModal === "editData" && (
+      {(showModal === "editData" && editType) && (
         <DataEntryModal
           open={true}
-          onClose={() => setShowModal(null)}
+          onClose={() => {
+            setShowModal(null);
+            setTimeout(() => {
+              setEditInitial(null);
+              setEditType(null);
+            }, 0);
+          }}
           type={editType}
           onSave={handleSaveEdit}
           initial={editInitial}
