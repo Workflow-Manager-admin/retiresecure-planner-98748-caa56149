@@ -63,7 +63,17 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
   );
 }
 
-/** Modal Dialog wrapper (generic) */
+import ReactDOM from "react-dom";
+
+/** PUBLIC_INTERFACE
+ * Modern Modal Dialog wrapper using React Portal for strict mode compatibility.
+ * @param {object} props
+ * @property {boolean} open - Whether the modal is open.
+ * @property {function} onClose - Callback to close the modal.
+ * @property {React.ReactNode} children - Modal content.
+ * @property {string} title - Title for aria-labeling.
+ * @property {string} id - Optional DOM id.
+ */
 function Modal({ open, onClose, children, title, id }) {
   // If not open, don't render at all (remove from DOM)
   if (!open) return null;
@@ -71,7 +81,7 @@ function Modal({ open, onClose, children, title, id }) {
   const dialogId = id ? id : `modal-${title ? title.replace(/\s+/g, '-').toLowerCase() : Math.random().toString(36).slice(2,8)}`;
   const labelledById = `${dialogId}-label`;
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Focus trap: focus modal on open
     const modal = document.getElementById(dialogId);
     if (modal) modal.focus();
@@ -81,18 +91,27 @@ function Modal({ open, onClose, children, title, id }) {
   }, [open, dialogId]);
 
   // Keyboard Esc closes
-  useEffect(() => {
+  React.useEffect(() => {
     if (!open) return;
     function onKeyDown(e) {
       if (e.key === "Escape") {
-        (onClose || (()=>{}))();
+        (onClose || (() => {}))();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  return (
+  // Create portal target on the fly if it doesn't exist
+  let modalRoot = document.getElementById("modal-root");
+  if (!modalRoot) {
+    modalRoot = document.createElement("div");
+    modalRoot.id = "modal-root";
+    modalRoot.setAttribute("data-testid", "modal-root");
+    document.body.appendChild(modalRoot);
+  }
+
+  const modalElement = (
     <div
       id={dialogId}
       className="modal-backdrop"
@@ -120,6 +139,7 @@ function Modal({ open, onClose, children, title, id }) {
       </div>
     </div>
   );
+  return ReactDOM.createPortal(modalElement, modalRoot);
 }
 
 /** Authentication Component (login/register/guest)
