@@ -129,38 +129,38 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       await waitFor(() => expect(screen.getByRole('dialog', { name: new RegExp(`edit ${type}`, 'i') })).toBeInTheDocument());
     }
 
-    test('asset entry modal validates required fields, stays open on validation error, and closes only on valid save', async () => {
+    test('asset entry modal validates required fields: stays open on validation error, closes only on valid save', async () => {
       /**
-       * Asset Entry Modal Validation Logic:
-       * 
-       * - On validation error (e.g., empty or negative value), the modal REMAINS open and shows an error message.
-       * - The modal closes ONLY on valid save (all required fields valid).
-       * - This test enforces that invalid submits NEVER close the modal, even on repeated error.
+       * Modal Validation Logic Alignment:
+       * - On invalid submit (empty/negative value): Modal must STAY OPEN, error shown, user can retry.
+       * - On valid data: Modal closes after save.
+       * - Test ensures: Invalid submits never close the modal (even if user submits error multiple times).
        */
       await openEdit('assets');
       let modal = screen.getByRole('dialog', { name: /edit assets/i });
       const saveBtn = within(modal).getByRole('button', { name: /^save$/i });
 
-      // Try invalid input (negative value)
+      // STEP 1: Enter invalid value (negative)
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
       fireEvent.click(saveBtn);
 
-      // Modal should stay open; error message must appear
+      // Should display error, modal remains open with error visible
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Try to submit again (without correcting the error) - should remain open (idem)
+      // STEP 2: Try invalid submit again (modal must still not close)
       fireEvent.click(saveBtn);
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Fix the input, submit valid value, modal closes
+      // STEP 3: Correct value, submit valid, should close
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
       fireEvent.click(saveBtn);
 
-      // Modal should close after successful/valid submit
+      // Now modal should close; wait for unmount
       await waitFor(() =>
         expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument()
       );
+      // The above verifies modal stays open on error and only closes on valid submit.
     });
 
     test('income/spending modals require valid numbers and text', async () => {
