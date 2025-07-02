@@ -872,24 +872,26 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 // - "Email: ..." is always visible for getByText(/email:/i) even if empty
 // - Structure and data-testid attributes support accessibility and regression tests
 function ProfilePanel({ user, onLogout }) {
-  const displayName = (user && typeof user.name === "string") ? user.name : "";
-  const displayEmail = (user && typeof user.email === "string") ? user.email : "";
-  const showCombined = displayName && displayEmail;
+  // Defensive defaults: guarantee always a string
+  const displayName = (user && typeof user.name === "string" && user.name.trim() !== "") ? user.name : "N/A";
+  const displayEmail = (user && typeof user.email === "string" && user.email.trim() !== "") ? user.email : "N/A";
 
+  // Always show "Name: ..." line (never blank) for selector reliability
+  // If email is known, show "Name: {user.name} ({user.email})", else just "Name: ..."
   return (
     <div className="profile-panel" data-testid="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
         {/* Always present for test getByText(/name:/i) */}
         <span data-testid="profile-user-info">
-          <strong>Name:</strong> {displayName || "N/A"}
-          {showCombined ? ` (${displayEmail})` : ""}
+          <strong>Name:</strong> {displayName}
+          {(user && typeof user.email === "string" && user.email.trim() !== "") ? ` (${user.email})` : ""}
         </span>
       </div>
       <div>
         {/* Always present for test getByText(/email:/i) */}
         <span data-testid="profile-user-email">
-          <strong>Email:</strong> {displayEmail || "N/A"}
+          <strong>Email:</strong> {displayEmail}
         </span>
       </div>
       <button
