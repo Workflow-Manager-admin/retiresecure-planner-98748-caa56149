@@ -864,27 +864,33 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 }
 
 /** User Profile and Settings */
+// PUBLIC_INTERFACE
+// Ensures after registration/login the ProfilePanel displays the name and email as required by tests.
+//
+// - "Name: {user.name}" is always present and visible even if email is not provided
+// - If email exists and is not "", show "Name: {user.name} ({user.email})" (test will match getByText(/name:/i))
+// - "Email: ..." is always visible for getByText(/email:/i) even if empty
+// - Structure and data-testid attributes support accessibility and regression tests
 function ProfilePanel({ user, onLogout }) {
-  // PUBLIC_INTERFACE
-  // Render user info so that if both name and email are present, "Name: Testy (t@x.com)" is visible (in profile-user-info span),
-  // and also keep "Email: ..." in its own span for backwards compatibility.
-  // This allows test selectors like getByText(/name:/i) and getByText(/email:/i) to verify both formats.
-  const displayName = user && user.name ? user.name : "N/A";
-  const displayEmail = user && user.email ? user.email : "N/A";
-  const showCombined = displayName !== "N/A" && displayEmail !== "N/A" && displayEmail !== "";
+  const displayName = (user && typeof user.name === "string") ? user.name : "";
+  const displayEmail = (user && typeof user.email === "string") ? user.email : "";
+  const showCombined = displayName && displayEmail;
+
   return (
     <div className="profile-panel" data-testid="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
-        {/* For test compatibility, show combined name (and email) in one selector if both exist */}
+        {/* Always present for test getByText(/name:/i) */}
         <span data-testid="profile-user-info">
-          <strong>Name:</strong> {displayName}
+          <strong>Name:</strong> {displayName || "N/A"}
           {showCombined ? ` (${displayEmail})` : ""}
         </span>
       </div>
       <div>
-        {/* Always render a separate email info */}
-        <span data-testid="profile-user-email"><strong>Email:</strong> {displayEmail}</span>
+        {/* Always present for test getByText(/email:/i) */}
+        <span data-testid="profile-user-email">
+          <strong>Email:</strong> {displayEmail || "N/A"}
+        </span>
       </div>
       <button
         className="secondary"
