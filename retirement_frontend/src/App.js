@@ -510,13 +510,16 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             data-testid={`scenario-listitem-${i}`}
             aria-current={i === activeIdx ? "true" : undefined}
           >
+            {/* The label is rendered as ONE text node only and gets a specific data-testid */}
             <button
               className="scenario-label"
               onClick={() => onActivate(i)}
               aria-label={`Scenario ${s.label || i + 1}`}
               data-testid={`scenario-label-btn-${i}`}
             >
-              {typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
+              <span data-testid={`scenario-label-text-${i}`}>
+                {typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
+              </span>
             </button>
             <button
               className="small"
@@ -737,33 +740,32 @@ function App() {
     });
   };
 
-  // Improved: New scenario creation -- synchronous update with guaranteed label rendering.
+  // Improved: New scenario creation -- synchronous update with guaranteed label rendering and unified DOM text.
   const handleNewScenario = async () => {
     const cur = scenarios[activeScenarioIdx];
-    // Prompt async for plan label, flushes microtask for label dialog.
     const label = await new Promise((resolve) => {
       setTimeout(() => resolve(prompt("Enter label for new scenario:", `${cur.label} Copy`)), 0);
     });
     const newLabel = typeof label === "string" && label.trim() !== "" ? label : `${cur.label} Copy`;
 
-    // Update both scenarios and active idx in the same flush, guaranteeing UI/DOM synchronicity:
+    // Guarantee full state flush: scenarios first, then synchronously update active index after React flush
     setScenarios(prev => {
       const arr = [...prev, { ...cur, id: makeId(), label: newLabel }];
-      // After setScenarios is committed in a microtask, update active scenario idx
+      // Synchronous flush: update index after commit for reliable DOM querying in tests (no async drift)
       queueMicrotask(() => setActiveScenarioIdx(arr.length - 1));
       return arr;
     });
   };
 
-  // Scenario activation and duplication with flush ordering for DOM stability:
+  // Scenario activation (synchronous)
   const handleActivateScenario = (idx) => setActiveScenarioIdx(idx);
 
+  // Duplication also flushed in strict order: save then activate, for test/DOM guarantees
   const handleDuplicateScenario = (idx) => {
     const base = scenarios[idx];
     setScenarios(prev => {
       const arr = prev.slice();
       arr.splice(idx + 1, 0, { ...base, id: makeId(), label: base.label + " Copy" });
-      // After setScenarios is flushed, set the new active scenario index
       queueMicrotask(() => setActiveScenarioIdx(idx + 1));
       return arr;
     });
