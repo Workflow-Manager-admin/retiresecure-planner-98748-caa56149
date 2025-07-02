@@ -190,28 +190,31 @@ describe('RetireSecure Planner Retirement Projections', () => {
 
       window.prompt = jest.fn(() => "Test Plan 2");
       fireEvent.click(screen.getByRole('button', { name: /^\+$/ }));
-      // Wait for the label to appear using async findByText (awaited query)
-      expect(await screen.findByText(/test plan 2/i)).toBeInTheDocument();
 
-      // All scenario labels are buttons with .scenario-label class
-      // Use robust awaited label check and re-query after mutation
+      // Await new scenario label to appear robustly (async UI render)
       await waitFor(async () => {
-        // Use awaited findAllByRole for label buttons post-mutation
+        expect(await screen.findByText(/test plan 2/i)).toBeInTheDocument();
+      });
+
+      // Await more than one scenario-label button in the DOM
+      await waitFor(async () => {
         const scenarioLabelButtons = await screen.findAllByRole('button', { name: /scenario/i });
         expect(scenarioLabelButtons.length).toBeGreaterThan(1);
       });
 
-      // Duplicate first scenario via unique "duplicate" button (title based)
+      // Duplicate first scenario
       fireEvent.click(screen.getAllByRole('button', { name: /duplicate/i })[0]);
       await waitFor(async () => {
         const buttons = await screen.findAllByRole('button', { name: /scenario/i });
-        expect(buttons.length).toBeGreaterThan(1); // >1 for confidence scenario appeared
+        expect(buttons.length).toBeGreaterThan(2);
       });
 
       // Delete a scenario with confirmation
       window.confirm = jest.fn(() => true);
       const deleteBtns = screen.getAllByRole('button', { name: /delete/i });
-      if (deleteBtns.length >= 2) { fireEvent.click(deleteBtns[1]); }
+      if (deleteBtns.length >= 2) {
+        fireEvent.click(deleteBtns[1]);
+      }
       expect(window.confirm).toHaveBeenCalled();
     });
   });

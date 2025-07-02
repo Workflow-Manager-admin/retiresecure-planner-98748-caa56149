@@ -689,20 +689,20 @@ function App() {
     });
   };
 
-  // New scenario (duplicate)
+  // Improved: New scenario (duplicate), reliably update the DOM for scenario label for test and runtime
   const handleNewScenario = async () => {
     const cur = scenarios[activeScenarioIdx];
-    // Capture label input before state update
+    // Prompt async for plan label
     const label = await new Promise((resolve) => {
-      // Support both test (jest.fn) and prod: always resolve in event loop
       setTimeout(() => resolve(prompt("Enter label for new scenario:", `${cur.label} Copy`)), 0);
     });
     const newLabel = label || `${cur.label} Copy`;
-    const copy = { ...cur, id: makeId(), label: newLabel };
-    setScenarios((prev) => {
-      const arr = [...prev, copy];
-      // Force state flush before making scenario active:
-      setTimeout(() => setActiveScenarioIdx(arr.length - 1), 0);
+    // The updater below returns the new array AND ensures after update, the latest index is focused
+    setScenarios(prev => {
+      const arr = [...prev, { ...cur, id: makeId(), label: newLabel }];
+      // Make sure to setActiveScenarioIdx *after* arr is in state
+      // Use a microtask (queueMicrotask) to ensure it comes after setScenarios
+      queueMicrotask(() => setActiveScenarioIdx(arr.length - 1));
       return arr;
     });
   };
@@ -710,22 +710,21 @@ function App() {
   const handleActivateScenario = (idx) => setActiveScenarioIdx(idx);
   const handleDuplicateScenario = (idx) => {
     const base = scenarios[idx];
-    const copy = { ...base, id: makeId(), label: base.label + " Copy" };
-    setScenarios((prev) => {
+    setScenarios(prev => {
       const arr = prev.slice();
-      arr.splice(idx + 1, 0, copy);
-      // Force state flush before changing active scenario
-      setTimeout(() => setActiveScenarioIdx(idx + 1), 0);
+      arr.splice(idx + 1, 0, { ...base, id: makeId(), label: base.label + " Copy" });
+      // Use queueMicrotask for next tick after state update
+      queueMicrotask(() => setActiveScenarioIdx(idx + 1));
       return arr;
     });
   };
   const handleDeleteScenario = (idx) => {
     if (scenarios.length === 1) return;
     if (!window.confirm("Are you sure you want to delete this scenario?")) return;
-    setScenarios((prev) => {
+    setScenarios(prev => {
       const arr = prev.slice();
       arr.splice(idx, 1);
-      setTimeout(() => setActiveScenarioIdx(0), 0);
+      queueMicrotask(() => setActiveScenarioIdx(0));
       return arr;
     });
   };
