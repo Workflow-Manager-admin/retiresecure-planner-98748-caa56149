@@ -516,7 +516,8 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               aria-label={`Scenario ${s.label || i + 1}`}
               data-testid={`scenario-label-btn-${i}`}
             >
-              {s.label || `Scenario ${i + 1}`}
+              {/* Render scenario label as a single, plain text node for robust selection */}
+              {typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
             </button>
             <button
               className="small"

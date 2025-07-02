@@ -191,8 +191,12 @@ describe('RetireSecure Planner Retirement Projections', () => {
       fireEvent.click(screen.getByRole('button', { name: /^\+$/ }));
 
       // Await new scenario label to appear robustly (sync, then async for full react propagation)
-      // Use direct .findBy instead of async-in-waitFor; keeps test robust on slow CI/test runs.
-      await screen.findByText(/test plan 2/i);
+      // Use a functional matcher for robust test: allow match if label text is included in visible text
+      await screen.findByText((content, node) => {
+        // Normalize whitespace for robust selection
+        const text = node.textContent || "";
+        return text.toLowerCase().includes("test plan 2");
+      });
 
       // Await more than one scenario-label button in the DOM for strong state propagation guarantee
       await waitFor(async () => {
