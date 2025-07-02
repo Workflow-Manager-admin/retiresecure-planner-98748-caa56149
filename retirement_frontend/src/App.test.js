@@ -137,11 +137,11 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
       fireEvent.click(saveBtn);
 
-      // Modal must remain open on validation error
+      // Modal must remain open on validation error (UI logic: validation failure keeps modal open, error shown)
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
-      // Fix form - set asset to valid and save; now modal should close
+      // Fix form - set asset to valid and save; now modal should close (UI logic: only on valid save modal closes)
       fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
       fireEvent.click(saveBtn);
       await waitFor(() =>

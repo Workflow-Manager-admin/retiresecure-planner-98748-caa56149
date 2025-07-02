@@ -398,18 +398,19 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
   const handleSubmit = (e) => {
     e.preventDefault();
     // Simple validation: all numbers >= 0 where numeric.
+    // On validation error, modal remains open and displays error (does NOT close).
     for (const field of fields) {
       if (
         field.type === "number" &&
         (!form[field.key] || isNaN(Number(form[field.key])) || Number(form[field.key]) < 0)
       ) {
         setError(`"${field.label}" must be a non-negative number.`);
-        // Do NOT call onSave; don't close modal on error.
+        // Do NOT call onSave; don't close modal on error. Modal stays open.
         return;
       }
       if (field.type === "text" && !form[field.key]) {
         setError(`"${field.label}" is required.`);
-        // Do NOT call onSave; don't close modal on error.
+        // Do NOT call onSave; don't close modal on error. Modal stays open.
         return;
       }
     }
@@ -1022,16 +1023,17 @@ function App() {
     setShowModal("editData");
   };
   // PUBLIC_INTERFACE
-  // Only closes asset modal on valid save. If validation fails in DataEntryModal, onSave is NOT called.
+  // Only closes asset modal on valid save.
+  // Validation failures in DataEntryModal do NOT trigger onSave; modal stays open for error correction.
+  // Error display and modal open state respond only to passed/failed validation.
   const handleSaveEdit = (form) => {
     updateActiveScenario((s) => ({
       ...s,
       [editType]: form
     }));
-    // Fully unmount and force modal DOM removal
+    // On valid, modal closes; on validation error, modal remains open.
     setShowModal(null);
     setTimeout(() => {
-      // Clear out initial state so re-opening remounts a new modal instance
       setEditInitial(null);
       setEditType(null);
     }, 0);
