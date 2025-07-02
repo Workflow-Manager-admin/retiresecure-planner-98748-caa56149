@@ -764,7 +764,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           title="Add Scenario"
           style={{ marginLeft: 4 }}
           onClick={onCreate}
-          aria-label="+"
+          aria-label="Add Scenario"
           role="button"
           id="add-scenario-btn"
           data-testid="add-scenario-btn"
