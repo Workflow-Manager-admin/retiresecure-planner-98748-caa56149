@@ -516,7 +516,12 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               aria-label={`Scenario ${s.label || i + 1}`}
               data-testid={`scenario-label-btn-${i}`}
             >
-              {/* Render scenario label as a single, plain text node for robust selection */}
+              {/* 
+                IMPORTANT: Render label as a pure text node, 
+                so that screen.findByText(/<label>/i) and other selector queries 
+                work robustly, even if the label includes spaces or casing differences.
+                Do not wrap in <span>, <b>, etc.
+              */}
               {typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
             </button>
             <button
