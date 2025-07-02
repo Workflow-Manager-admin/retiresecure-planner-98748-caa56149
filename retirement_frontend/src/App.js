@@ -491,7 +491,7 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
  * =========================================================================================
  * ABSOLUTE GUARANTEE: The scenario label button renders its label (e.g. 'Test Plan 2') as a
  * **pure, uninterrupted text node** inside the <button>, with NO fragment, array, span, or
- * any other markup, wrapper, or element splitting the label.
+ * any wrapper or element splitting the label.
  *
  *    <button>Test Plan 2</button>   // CORRECT: DOM child 0 is a Text node exactly matching labelText
  *    <button><span>Test Plan 2</span></button>   // WRONG! (No wrappers allowed)
@@ -509,6 +509,13 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
  *  - After editing: **inspect the DOM** — confirm <button>'s only child is nodeType===3 (Text) and the label is exactly as expected.
  *  - If you ever see `<button><span>...</span></button>`, `<button>{[label]}</button>`, or anything except `<button>Label</button>`, REJECT THE CHANGE.
  *  - This contract is tested in automation and must hold for all time.
+ * 
+ *  NOTE (2024 contract): The <button> label **MUST** be a raw string primitive—never an array, fragment, or wrapped type.
+ *  e.g.
+ *      <button>{labelText}</button>      // ✅ Correct: `labelText` is a string primitive
+ *      <button>{["Text"]}</button>       // ❌ Wrong: Array will cause test to fail
+ *      <button><span>{labelText}</span></button> // ❌ Wrong: Span or wrapper causes test failure
+ *  If your IDE/linter warns for primitive-only, ignore it—this pattern is required for accessibility/testability.
  * =========================================================================================
  */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
@@ -543,12 +550,9 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
-          // ----------------------------------------------------------------
-          // MAINTAINERS: DO NOT WRAP labelText IN ANY JSX (NO <>, [], <span>, etc)
+          // STRONG CONTRACT: labelText must be a STRING PRIMITIVE, not an array, fragment, or React element.
           // The ONLY child of the <button> below MUST be a string primitive.
-          // The output DOM must be: <button>Label Here</button> (child nodeType===3)
-          // Strict contract for robust DOM test selectors! See above.
-          // ----------------------------------------------------------------
+          // The DOM must render: <button>Label Here</button> (child nodeType===3)
           let labelText =
             typeof s.label === "string" ? s.label.trim() : `Scenario ${i + 1}`;
           if (typeof labelText !== "string") labelText = String(labelText);
@@ -566,6 +570,13 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 Do NOT wrap labelText in fragments, arrays, spans, or ANY inline elements—only inject the string primitive directly.
                 The only legitimate DOM structure is: <button>Label Here</button>, where the label is a unified text node (nodeType===3).
                 See above contract for further explanation.
+                
+                --- STRICT LABEL CONTRACT: ---
+                Only a raw string primitive must be injected as a child.
+                <button>{labelText}</button>   // ✅ OK
+                <button>{[labelText]}</button> // ❌ NOK
+                <button><>{labelText}</></button> // ❌ NOK
+                <button><span>{labelText}</span></button> // ❌ NOK
               */}
               <button
                 className="scenario-label"
