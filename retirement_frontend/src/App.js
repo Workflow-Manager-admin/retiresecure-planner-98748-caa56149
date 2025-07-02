@@ -551,14 +551,23 @@ function SummaryTable({ data, onEdit }) {
   );
 }
 
-/** Projection Visualization (Chart) */
+/** Projection Visualization (Chart)
+ *  Chart overlays and SVG ARIA labeling are standardized so test/automation can always query the same attributes.
+ *  Always visible/testable, even for overlays.
+ */
 function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId }) {
-  // Simple SVG line chart.
   // projection = { years: [2024,...], income: [...], expenses: [...], assets: [...] }
   if (!projection || !projection.years || projection.years.length === 0) {
-    return <div style={{ textAlign: "center", margin: 40, color: COLORS.secondary }}>No projection data.</div>;
+    return (
+      <div
+        style={{ textAlign: "center", margin: 40, color: COLORS.secondary }}
+        aria-label="No projection data"
+        data-testid={chartId ? `projection-chart-${chartId}-nodata` : "projection-chart-nodata"}
+      >
+        No projection data.
+      </div>
+    );
   }
-  // Make SVG group for each data line
   const maxY = Math.max(
     ...projection.income,
     ...projection.expenses,
@@ -566,9 +575,8 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId
     ...(comparison ? comparison.assets : [])
   );
 
-  // Helper to build SVG path
-  const makePath = (arr, yMax, color, room = 60) => {
-    // arr (numbers), yMax = chart Y (pixels)
+  // Helper to build SVG path with data-testids to test overlays
+  const makePath = (arr, yMax, strokeColor, label, overlayId, room = 60) => {
     const N = projection.years.length;
     const xStep = 340 / (N - 1 || 1);
     let path = "";
@@ -578,33 +586,52 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId
       if (i === 0) path = `M ${svgX} ${svgY}`;
       else path += ` L ${svgX} ${svgY}`;
     });
-    return <path d={path} fill="none" stroke={color} strokeWidth="2.5" />;
+    return (
+      <path
+        d={path}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="2.5"
+        aria-label={label}
+        data-testid={overlayId}
+      />
+    );
   };
 
-  // Unique ARIA-label for accessible chart region
+  // Unique ARIA-labels and testids for overlays/series
   const regionLabel =
     `Retirement Projection Chart${projection.label ? `: ${projection.label}` : ""}${chartId ? ` Chart ID ${chartId}` : ""}`;
 
   return (
-    <div className="chart-block" role="region" aria-label={regionLabel} data-testid={chartId ? `projection-chart-${chartId}` : "projection-chart"}>
+    <div
+      className="chart-block"
+      role="region"
+      aria-label={regionLabel}
+      data-testid={chartId ? `projection-chart-${chartId}` : "projection-chart"}
+    >
       <div className="chart-labels">
         <strong>Retirement Projection</strong>
         <span style={{ fontWeight: 400, color: COLORS.accent }}>
           {projection.label || ""}
         </span>
       </div>
-      <svg width={400} height={220} className="projection-chart" role="img" aria-label={regionLabel}>
+      <svg
+        width={400}
+        height={220}
+        className="projection-chart"
+        role="img"
+        aria-label={regionLabel}
+        data-testid={chartId ? `svg-projection-chart-${chartId}` : "svg-projection-chart"}
+      >
         {/* Axes */}
         <line x1={40} y1={60} x2={40} y2={200} stroke="#CCC" />
         <line x1={40} y1={200} x2={380} y2={200} stroke="#CCC" />
-        {/* Main Data Lines */}
-        {makePath(projection.assets, maxY, color)}
-        {makePath(projection.income, maxY, COLORS.primary)}
-        {makePath(projection.expenses, maxY, COLORS.error)}
-        {/* Comparison overlay */}
-        {comparison && makePath(comparison.assets, maxY, COLORS.secondary)}
+        {/* Data Series - overlays explicitly labeled */}
+        {makePath(projection.assets, maxY, color, "Assets Data Series", (chartId ? `chart-assets-overlay-${chartId}` : "chart-assets-overlay"))}
+        {makePath(projection.income, maxY, COLORS.primary, "Income Data Series", (chartId ? `chart-income-overlay-${chartId}` : "chart-income-overlay"))}
+        {makePath(projection.expenses, maxY, COLORS.error, "Expenses Data Series", (chartId ? `chart-expenses-overlay-${chartId}` : "chart-expenses-overlay"))}
+        {comparison && makePath(comparison.assets, maxY, COLORS.secondary, "Comparison Assets Overlay", (chartId ? `chart-assets-comparison-overlay-${chartId}` : "chart-assets-comparison-overlay"))}
         {/* Axis labels */}
-        {/* Years bottom */}
         {projection.years.map((y, i) => (
           <text
             key={y}
@@ -613,11 +640,12 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId
             fontSize={8}
             textAnchor="middle"
             fill="#666"
+            aria-label={`Year ${y}`}
+            data-testid={(chartId ? `chart-xlabel-${chartId}-${y}` : undefined)}
           >
             {y}
           </text>
         ))}
-        {/* Money left */}
         {[0, 0.25, 0.5, 0.75, 1].map((frac, i) => (
           <text
             key={i}
@@ -626,17 +654,43 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId
             fontSize={8}
             textAnchor="end"
             fill="#666"
+            aria-label={`Value $${fmtMoney(Math.round(maxY * frac))}`}
+            data-testid={chartId ? `chart-ylabel-${chartId}-${i}` : undefined}
           >
             {"$" + fmtMoney(Math.round(maxY * frac))}
           </text>
         ))}
       </svg>
-      <div className="chart-legend">
-        <span style={{ color: COLORS.primary }} aria-label="Income Data Series">● Income</span>
-        <span style={{ color: COLORS.error }} aria-label="Expenses Data Series">● Expenses</span>
-        <span style={{ color: color }} aria-label="Assets Data Series">● Assets</span>
+      <div className="chart-legend" data-testid={chartId ? `chart-legend-${chartId}` : "chart-legend"}>
+        <span
+          style={{ color: COLORS.primary }}
+          aria-label="Income Data Series"
+          data-testid={chartId ? `legend-income-${chartId}` : "legend-income"}
+        >
+          ● Income
+        </span>
+        <span
+          style={{ color: COLORS.error }}
+          aria-label="Expenses Data Series"
+          data-testid={chartId ? `legend-expenses-${chartId}` : "legend-expenses"}
+        >
+          ● Expenses
+        </span>
+        <span
+          style={{ color: color }}
+          aria-label="Assets Data Series"
+          data-testid={chartId ? `legend-assets-${chartId}` : "legend-assets"}
+        >
+          ● Assets
+        </span>
         {comparison && (
-          <span style={{ color: COLORS.secondary }} aria-label="Comparison Plan">● Other Plan</span>
+          <span
+            style={{ color: COLORS.secondary }}
+            aria-label="Comparison Assets Overlay"
+            data-testid={chartId ? `legend-comparison-${chartId}` : "legend-comparison"}
+          >
+            ● Other Plan
+          </span>
         )}
       </div>
     </div>
@@ -645,9 +699,9 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId
 
 /** Scenario Comparison Panel 
  *  Ensures all controls are always present and discoverable for accessibility and automation.
+ *  Buttons/labels are always in the DOM and tied to explicit aria-labels and testids.
  */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
-  // Always render an Add Scenario button even if 0 scenarios present (edge, but for testability).
   return (
     <div
       className="scenarios-panel"
@@ -661,13 +715,13 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           className="small"
           title="Add Scenario"
           style={{ marginLeft: 4 }}
-          onClick={() => onCreate()}
+          onClick={onCreate}
           aria-label="Add Scenario"
           role="button"
           id="add-scenario-btn"
           data-testid="add-scenario-btn"
         >
-          +
+          Add
         </button>
       </h3>
       <ul className="scenarios-list" role="list" aria-labelledby="scenarios-heading">
@@ -675,7 +729,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           <li role="listitem" aria-current={false}>
             <span
               className="scenario-label"
-              aria-label="No Scenarios"
+              aria-label="No scenarios"
               data-testid="scenario-label-none"
             >
               No scenarios defined.
@@ -692,50 +746,54 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             >
               <button
                 className="scenario-label"
+                type="button"
                 onClick={() => onActivate(i)}
                 aria-label={
                   s.label
-                    ? `Select scenario: ${s.label}`
+                    ? `Select Scenario: ${s.label} (${i + 1})`
                     : `Select Scenario ${i + 1}`
                 }
                 role="button"
-                id={`activate-scenario-btn-${i}`}
                 data-testid={`activate-scenario-btn-${i}`}
+                id={`activate-scenario-btn-${i}`}
               >
                 {s.label || `Scenario ${i + 1}`}
               </button>
               <button
                 className="small"
+                type="button"
                 title="Duplicate"
                 onClick={() => onDuplicate(i)}
                 aria-label={
                   s.label
-                    ? `Duplicate scenario: ${s.label}`
+                    ? `Duplicate Scenario: ${s.label} (${i + 1})`
                     : `Duplicate Scenario ${i + 1}`
                 }
                 role="button"
-                id={`duplicate-scenario-btn-${i}`}
                 data-testid={`duplicate-scenario-btn-${i}`}
+                id={`duplicate-scenario-btn-${i}`}
               >
                 Duplicate
               </button>
-              {i > 0 && (
-                <button
-                  className="small"
-                  title="Delete"
-                  onClick={() => onDelete(i)}
-                  aria-label={
-                    s.label
-                      ? `Delete scenario: ${s.label}`
-                      : `Delete Scenario ${i + 1}`
-                  }
-                  role="button"
-                  id={`delete-scenario-btn-${i}`}
-                  data-testid={`delete-scenario-btn-${i}`}
-                >
-                  Delete
-                </button>
-              )}
+              <button
+                className="small"
+                type="button"
+                title="Delete"
+                onClick={() => onDelete(i)}
+                aria-label={
+                  s.label
+                    ? `Delete Scenario: ${s.label} (${i + 1})`
+                    : `Delete Scenario ${i + 1}`
+                }
+                role="button"
+                data-testid={`delete-scenario-btn-${i}`}
+                id={`delete-scenario-btn-${i}`}
+                // Always present but disabled for the first scenario for testability
+                disabled={i === 0}
+                tabIndex={i === 0 ? -1 : 0}
+              >
+                Delete
+              </button>
             </li>
           ))
         )}
