@@ -138,6 +138,7 @@ describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
       fireEvent.click(saveBtn);
 
       // Modal must remain open on validation error (UI logic: validation failure keeps modal open, error shown)
+      // Updated: We assert modal is still in the DOM after error. This matches UI behavior and requirements.
       expect(await screen.findByText(/must be a non-negative number/i)).toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: /edit assets/i })).toBeInTheDocument();
 
