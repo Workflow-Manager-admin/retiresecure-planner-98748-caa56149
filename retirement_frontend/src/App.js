@@ -645,26 +645,35 @@ function App() {
     const cur = scenarios[activeScenarioIdx];
     const label = prompt("Enter label for new scenario:", `${cur.label} Copy`);
     const copy = { ...cur, id: makeId(), label: label || `${cur.label} Copy` };
-    setScenarios([...scenarios, copy]);
-    setActiveScenarioIdx(scenarios.length);
+    setScenarios((prev) => {
+      const arr = [...prev, copy];
+      // Set Active after React flushes DOM: useEffect can listen or, for user/test perception, use callback.
+      // We'll force focus/sync on next tick.
+      setTimeout(() => setActiveScenarioIdx(arr.length - 1), 0);
+      return arr;
+    });
   };
   // From Scenario Panel handlers
   const handleActivateScenario = (idx) => setActiveScenarioIdx(idx);
   const handleDuplicateScenario = (idx) => {
     const base = scenarios[idx];
     const copy = { ...base, id: makeId(), label: base.label + " Copy" };
-    const arr = scenarios.slice();
-    arr.splice(idx + 1, 0, copy);
-    setScenarios(arr);
-    setActiveScenarioIdx(idx + 1);
+    setScenarios((prev) => {
+      const arr = prev.slice();
+      arr.splice(idx + 1, 0, copy);
+      setTimeout(() => setActiveScenarioIdx(idx + 1), 0);
+      return arr;
+    });
   };
   const handleDeleteScenario = (idx) => {
     if (scenarios.length === 1) return;
     if (!window.confirm("Are you sure you want to delete this scenario?")) return;
-    const arr = scenarios.slice();
-    arr.splice(idx, 1);
-    setScenarios(arr);
-    setActiveScenarioIdx(0);
+    setScenarios((prev) => {
+      const arr = prev.slice();
+      arr.splice(idx, 1);
+      setTimeout(() => setActiveScenarioIdx(0), 0);
+      return arr;
+    });
   };
 
   // Helper: scenario state update
