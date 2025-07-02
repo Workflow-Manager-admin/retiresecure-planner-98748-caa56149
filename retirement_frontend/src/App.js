@@ -93,8 +93,13 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
     }
   };
 
+  // Patch: allow modal close to be equivalent to choosing guest login
+  const handleClose = () => {
+    onAuthenticate({ action: "guest" });
+  };
+
   return (
-    <Modal open={open} onClose={() => {}} title="Welcome to RetireSecure">
+    <Modal open={open} onClose={handleClose} title="Welcome to RetireSecure">
       <div style={{ marginBottom: 20, display: "flex", gap: 8 }}>
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
