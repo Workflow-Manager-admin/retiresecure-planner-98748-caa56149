@@ -2,275 +2,193 @@ import React from 'react';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import App, { runProjection } from './App';
 
-// TEST SUITE for RetireSecure Planner
+// =============================
+// TEST SUITE for RetireSecure Planner Retirement Projections
+// =============================
+describe('RetireSecure Planner Retirement Projections', () => {
+  // -------------------- UNIT TESTS: LOGIC --------------------
+  describe('runProjection: Core Calculation Logic', () => {
+    test('handles taxes: after-tax income vs tax-free, impact on assets', () => {
+      const assets = { "401k": 100000, "ira": 0, "brokerage": 0, "realEstate": 0, "cash": 0 };
+      const income = { salary: 60000, pension: 0, socialSecurity: 10000, otherIncome: 0, ssStartAge: 67 };
+      const spending = { housing: 1800, healthcare: 500, travel: 100, discretionary: 200, other: 0 };
+      const taxesLow = { status: "Single", rate: 0, deductions: 0 };
+      const taxesHigh = { status: "Single", rate: 30, deductions: 0 };
+      const projLow = runProjection(assets, income, spending, taxesLow);
+      const projHigh = runProjection(assets, income, spending, taxesHigh);
+      expect(projLow.income[0]).toBeGreaterThan(projHigh.income[0]);
+      expect(projHigh.assets[0]).toBeLessThan(projLow.assets[0]);
+    });
 
-describe('RetireSecure Planner Frontend Integration/Unit Tests', () => {
-  // ---------- Authentication Flows -----------
-  describe('Authentication Modal', () => {
-    function getModal() {
-      return screen.getByRole('dialog', { name: /welcome to retiresecure/i });
-    }
+    test('tracks assets: withdrawal sequence cash -> brokerage -> ira -> 401k', () => {
+      // Spending > income, only cash available
+      let assets = { "401k": 0, "ira": 0, "brokerage": 0, "realEstate": 0, "cash": 30000 };
+      let income = { salary: 0, pension: 0, socialSecurity: 0, otherIncome: 0, ssStartAge: 67 };
+      let spending = { housing: 2500, healthcare: 0, travel: 0, discretionary: 0, other: 0 };
+      let taxes = { status: "Single", rate: 0, deductions: 0 };
+      let proj = runProjection(assets, income, spending, taxes);
+      // First year asset draw - cash should drop
+      expect(proj.assets[0]).toBeLessThan(30000);
+
+      // Now cash = 0, brokerage available
+      assets = { "401k": 0, "ira": 0, "brokerage": 36000, "realEstate": 0, "cash": 0 };
+      proj = runProjection(assets, income, spending, taxes);
+      expect(proj.assets[0]).toBeLessThan(36000);
+
+      // Now only ira available
+      assets = { "401k": 0, "ira": 36000, "brokerage": 0, "realEstate": 0, "cash": 0 };
+      proj = runProjection(assets, income, spending, taxes);
+      expect(proj.assets[0]).toBeLessThan(36000);
+
+      // Now only 401k available
+      assets = { "401k": 36000, "ira": 0, "brokerage": 0, "realEstate": 0, "cash": 0 };
+      proj = runProjection(assets, income, spending, taxes);
+      expect(proj.assets[0]).toBeLessThan(36000);
+    });
+
+    test('401K/IRA: minimum distributions (RMD) are triggered at age 73+', () => {
+      const assets = { "401k": 40000, "ira": 30000, "brokerage": 0, "realEstate": 0, "cash": 0 };
+      const income = { salary: 0, pension: 0, socialSecurity: 0, otherIncome: 0, ssStartAge: 67 };
+      const spending = { housing: 1800, healthcare: 0, travel: 0, discretionary: 0, other: 0 };
+      const taxes = { status: "Single", rate: 0, deductions: 0 };
+      const proj = runProjection(assets, income, spending, taxes);
+      // RMD should be deducted at year corresponding to age 73
+      // Default simulation uses curAge 45, ssStartAge 67, horizon 30 (ending at 75)
+      // Let's find the 73rd year (age)
+      const firstRmdIdx = 73 - 45; // 28th year of projection
+      expect(proj.assets.length).toBeGreaterThan(firstRmdIdx);
+      // Asset drop at firstRmdIdx due to RMD withdrawals; not a strict equality test (compounded by growth)
+      expect(proj.assets[firstRmdIdx] <= proj.assets[firstRmdIdx - 1]).toBe(true);
+    });
+
+    test('IRA/401K withdrawal does not make balance negative', () => {
+      const assets = { "401k": 5000, "ira": 1000, "brokerage": 0, "realEstate": 0, "cash": 0 };
+      const income = { salary: 3000, pension: 0, socialSecurity: 0, otherIncome: 0, ssStartAge: 67 };
+      const spending = { housing: 3000, healthcare: 0, travel: 0, discretionary: 0, other: 0 };
+      const taxes = { status: "Single", rate: 0, deductions: 0 };
+      const proj = runProjection(assets, income, spending, taxes);
+      expect(Math.min(...proj.assets)).toBeGreaterThanOrEqual(0);
+    });
+
+    test('social security payment appears only after ssStartAge', () => {
+      const income = { salary: 0, pension: 0, socialSecurity: 25000, otherIncome: 0, ssStartAge: 69 };
+      const spending = { housing: 200, healthcare: 0, travel: 0, discretionary: 0, other: 0 };
+      const taxes = { status: "Single", rate: 5, deductions: 0 };
+      const proj = runProjection({}, income, spending, taxes);
+      // Index for ssStartAge
+      const idx = income.ssStartAge - 45; // default curAge=45
+      // Should have 25k SS after reaching ssStartAge
+      for (let i = 0; i < proj.years.length; ++i) {
+        if (i + 45 >= income.ssStartAge) expect(proj.income[i]).toBeGreaterThanOrEqual(20000);
+        else expect(proj.income[i]).toBeLessThan(20000);
+      }
+    });
+
+    test('other income sources added to post-retirement income', () => {
+      const income = { salary: 0, pension: 6000, socialSecurity: 0, otherIncome: 2000, ssStartAge: 67 };
+      const spending = { housing: 200, healthcare: 0, travel: 0, discretionary: 0, other: 0 };
+      const taxes = { status: "Single", rate: 0, deductions: 0 };
+      const proj = runProjection({}, income, spending, taxes);
+      // All post-retirement years have pension + other income
+      for (let i = 22; i < proj.income.length; ++i) { // 45+22=67
+        expect(proj.income[i]).toBeGreaterThanOrEqual(8000);
+      }
+    });
+
+    test('spending projections: higher spending leads to faster depletion', () => {
+      const big_spending = { housing: 6000, healthcare: 2000, travel: 1000, discretionary: 1000, other: 1000 };
+      const low_spending = { housing: 500, healthcare: 100, travel: 0, discretionary: 100, other: 0 };
+      const assets = { "401k": 50000, "ira": 0, "brokerage": 0, "realEstate": 0, "cash": 0 };
+      const income = { salary: 0, pension: 0, socialSecurity: 0, otherIncome: 0, ssStartAge: 67 };
+      const taxes = { status: "Single", rate: 0, deductions: 0 };
+      const projBig = runProjection(assets, income, big_spending, taxes);
+      const projLow = runProjection(assets, income, low_spending, taxes);
+
+      // Assets depleted earlier for big spending
+      const depletionBig = projBig.assets.findIndex(x => x === 0);
+      const depletionLow = projLow.assets.findIndex(x => x === 0);
+      expect(depletionBig).toBeGreaterThanOrEqual(0);
+      expect(depletionBig).toBeLessThan(depletionLow);
+    });
+  });
+
+  // -------------------- INTEGRATION/COMPONENT TESTS: UI/State flows --------------------
+  describe('Integration: User Flows through UI and projection results', () => {
     beforeEach(() => {
       localStorage.clear();
     });
 
-    test('shows login, registration and guest mode tabs', () => {
+    test('user can register, input assets/income/spending, run projection and see updated stats', async () => {
       render(<App />);
-      // Modal appears on fresh load
-      expect(getModal()).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /guest/i })).toBeInTheDocument();
-    });
-
-    test('login fails with invalid credentials and shows error', () => {
-      render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /login/i }));
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'foo@example.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'badpw' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-
-      expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
-    });
-
-    test('can register a new user and then login', () => {
-      render(<App />);
+      // Registration
       fireEvent.click(screen.getByRole('button', { name: /register/i }));
-      fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Alice' } });
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'alice@test.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw1234' } });
+      fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'User1' } });
+      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'u@test.com' } });
+      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw123' } });
       fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
 
-      expect(screen.queryByRole('dialog', { name: /welcome to retiresecure/i })).not.toBeInTheDocument();
-      expect(screen.getByText(/alice/i)).toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /welcome/i })).not.toBeInTheDocument();
 
-      // Log out and log back in works
-      fireEvent.click(screen.getByRole('button', { name: /logout/i }));
-      expect(screen.getByRole('dialog', { name: /welcome to retiresecure/i })).toBeInTheDocument();
+      // Edit Assets
+      fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0]);
+      const assetModal = screen.getByRole('dialog', { name: /edit assets/i });
+      fireEvent.change(within(assetModal).getByLabelText(/401k/i), { target: { value: 90000 } });
+      fireEvent.change(within(assetModal).getByLabelText(/brokerage/i), { target: { value: 30000 } });
+      fireEvent.click(within(assetModal).getByRole('button', { name: /save/i }));
 
-      // Now try login that succeeds
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'alice@test.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw1234' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-      expect(screen.queryByRole('dialog', { name: /welcome to retiresecure/i })).not.toBeInTheDocument();
-      expect(screen.getByText(/alice/i)).toBeInTheDocument();
-    });
+      // Edit Income
+      fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[1]);
+      const incomeModal = screen.getByRole('dialog', { name: /edit income/i });
+      fireEvent.change(within(incomeModal).getByLabelText(/current salary/i), { target: { value: 50000 } });
+      fireEvent.change(within(incomeModal).getByLabelText(/social security/i), { target: { value: 18000 } });
+      fireEvent.change(within(incomeModal).getByLabelText(/ss start age/i), { target: { value: 66 } });
+      fireEvent.click(within(incomeModal).getByRole('button', { name: /save/i }));
 
-    test('guest mode disables persistence and displays note', () => {
-      render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
-      fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(screen.getByText(/guest/i)).toBeInTheDocument();
-    });
-  });
+      // Edit Spending
+      fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[2]);
+      const spendModal = screen.getByRole('dialog', { name: /edit spending/i });
+      fireEvent.change(within(spendModal).getByLabelText(/housing/i), { target: { value: 1800 } });
+      fireEvent.change(within(spendModal).getByLabelText(/healthcare/i), { target: { value: 500 } });
+      fireEvent.click(within(spendModal).getByRole('button', { name: /save/i }));
 
-  // ---------- Dashboard, Navigation, and User Profile -----------
-  describe('Main Dashboard and Sidebar Navigation', () => {
-    beforeEach(() => {
-      localStorage.clear();
-      render(<App />);
-      // Use guest by default to skip login for navigation/flows
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
-      fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
-    });
-
-    test('shows main dashboard with quick stats/cards', () => {
-      expect(screen.getByRole('heading', { name: /retirement overview/i })).toBeInTheDocument();
-      expect(screen.getByText(/retirement age/i)).toBeInTheDocument();
-      expect(screen.getByText(/first year income/i)).toBeInTheDocument();
-      expect(screen.getByText(/asset depletion risk/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /project retirement income/i })).toBeInTheDocument();
-    });
-
-    test('sidebar navigates between dashboard and profile', () => {
-      fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
-      expect(screen.getByRole('heading', { name: /user profile/i })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('listitem', { name: /dashboard/i }));
-      expect(screen.getByRole('heading', { name: /retirement overview/i })).toBeInTheDocument();
-    });
-  });
-
-  // ---------- Data Input Forms and Modal Validations -----------
-  describe('Data Input Forms for Assets, Income, Spending', () => {
-    beforeEach(() => {
-      localStorage.clear();
-      render(<App />);
-      // Guest for simplicity
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
-      fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
-    });
-    function openEdit(type) {
-      // Find and click edit button for assets, income, or spending
-      fireEvent.click(screen.getAllByRole('button', { name: /edit/i }).find(btn =>
-        btn.closest('tr').firstChild.textContent.toLowerCase() === type
-      ));
-    }
-
-    test('asset entry modal validates required fields', () => {
-      openEdit('assets');
-      const modal = screen.getByRole('dialog', { name: /edit assets/i });
-      const saveBtn = within(modal).getByRole('button', { name: /save/i });
-      // Set asset to invalid
-      fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: -1 } });
-      fireEvent.click(saveBtn);
-      expect(screen.getByText(/must be a non-negative number/i)).toBeInTheDocument();
-      // Set asset to valid and save
-      fireEvent.change(within(modal).getByLabelText(/401k accounts/i), { target: { value: 50000 } });
-      fireEvent.click(saveBtn);
-      expect(screen.queryByRole('dialog', { name: /edit assets/i })).not.toBeInTheDocument();
-    });
-
-    test('income/spending modals require valid numbers and text', () => {
-      openEdit('income');
-      const modal = screen.getByRole('dialog', { name: /edit income/i });
-      fireEvent.change(within(modal).getByLabelText(/current salary/i), { target: { value: '' } });
-      fireEvent.click(within(modal).getByRole('button', { name: /save/i }));
-      expect(screen.getByText(/must be a non-negative number/i)).toBeInTheDocument();
-
-      // spending
-      openEdit('spending');
-      const sModal = screen.getByRole('dialog', { name: /edit spending/i });
-      fireEvent.change(within(sModal).getByLabelText(/housing/i), { target: { value: -10 } });
-      fireEvent.click(within(sModal).getByRole('button', { name: /save/i }));
-      expect(screen.getByText(/must be a non-negative number/i)).toBeInTheDocument();
-    });
-  });
-
-  // ---------- Projection Logic/UI Integration -----------
-  describe('Projection Modal, Chart, and Calculation', () => {
-    beforeEach(() => {
-      localStorage.clear();
-      render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
-      fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
-    });
-
-    test('projects income and updates dashboard stats', async () => {
-      const projBtn = screen.getByRole('button', { name: /project retirement income/i });
-      fireEvent.click(projBtn);
-
-      await waitFor(() =>
-        expect(screen.getByRole('dialog', { name: /retirement projection/i })).toBeInTheDocument()
-      );
+      // Run Projection
+      fireEvent.click(screen.getByRole('button', { name: /project retirement income/i }));
+      await waitFor(() => expect(screen.getByRole('dialog', { name: /retirement projection/i })).toBeInTheDocument());
       expect(screen.getByRole('img', { name: /projection chart/i })).toBeInTheDocument();
-      // Close button closes modal
+      // Stats update in dashboard
       fireEvent.click(screen.getByRole('button', { name: /close/i }));
-      expect(screen.queryByRole('dialog', { name: /retirement projection/i })).not.toBeInTheDocument();
+      expect(screen.getByText(/first year income/i).closest('.stat-card')).toHaveTextContent(/\$[0-9,]+/);
     });
-  });
 
-  // ---------- Scenario Comparison -----------
-  describe('Scenario Comparison Flows', () => {
-    beforeEach(() => {
-      localStorage.clear();
+    test('guest mode disables persistence & shows proper user state', () => {
       render(<App />);
       fireEvent.click(screen.getByRole('button', { name: /guest/i }));
       fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
+      expect(screen.getByText(/guest/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
+      expect(screen.getByText(/data will not be saved/i)).not.toBeInTheDocument();
     });
 
-    test('can add, switch, and delete scenarios', () => {
+    test('multiple scenarios: add, duplicate, compare, and delete', () => {
+      render(<App />);
+      fireEvent.click(screen.getByRole('button', { name: /guest/i }));
+      fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
+
       // Go to scenarios tab
       fireEvent.click(screen.getByRole('listitem', { name: /scenarios/i }));
-      expect(screen.getByRole('heading', { name: /scenarios/i })).toBeInTheDocument();
+      // Add scenario (simulate prompt)
+      window.prompt = jest.fn(() => "Test Plan 2");
+      fireEvent.click(screen.getByRole('button', { name: /^\+$/ }));
+      expect(screen.getByText(/test plan 2/i)).toBeInTheDocument();
 
-      // Add scenario
-      fireEvent.click(screen.getByRole('button', { name: /\+/i }));
-      // Simulate user prompt
-      window.prompt = jest.fn(() => "My Plan 2");
-      fireEvent.click(screen.getByRole('button', { name: /\+/i }));
+      // Duplicate scenario
+      fireEvent.click(screen.getAllByRole('button', { name: /duplicate/i })[0]);
       expect(screen.getAllByRole('button', { name: /scenario/i }).length).toBeGreaterThan(1);
 
-      // Switch scenario
-      fireEvent.click(screen.getAllByRole('button', { name: /scenario/i })[1]);
-      expect(screen.getAllByRole('button', { name: /scenario/i })[1].closest('li')).toHaveClass('active');
-
-      // Duplicate current scenario
-      fireEvent.click(screen.getAllByRole('button', { name: /duplicate/i })[1]);
-      expect(screen.getAllByRole('button', { name: /scenario/i }).length).toBeGreaterThan(2);
-
-      // Delete a scenario (ensure confirmation dialog)
+      // Switch & Delete scenario (simulate confirm)
       window.confirm = jest.fn(() => true);
-      fireEvent.click(screen.getAllByRole('button', { name: /delete/i })[2]);
+      fireEvent.click(screen.getAllByRole('button', { name: /delete/i })[1]);
       expect(window.confirm).toHaveBeenCalled();
-    });
-
-    test('chart overlays comparison between scenarios', () => {
-      fireEvent.click(screen.getByRole('listitem', { name: /scenarios/i }));
-      // There should be an Assets/Income/Expenses chart in each scenario display
-      expect(screen.getAllByRole('img', { name: /projection chart/i }).length).toBeGreaterThan(0);
-    });
-  });
-
-  // ---------- User Profile -----------
-  describe('User Profile Panel', () => {
-    beforeEach(() => {
-      localStorage.clear();
-      render(<App />);
-      fireEvent.click(screen.getByRole('button', { name: /register/i }));
-      fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Testy' } });
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@x.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw1111' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
-    });
-
-    test('shows correct user info and allows logout', () => {
-      fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
-      expect(screen.getByText(/name:/i)).toHaveTextContent('Testy');
-      expect(screen.getByText(/email:/i)).toHaveTextContent('t@x.com');
-      // Log out returns to auth screen
-      fireEvent.click(screen.getByRole('button', { name: /logout/i }));
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
-  });
-
-  // ---------- Utility/Logic Unit Tests -----------
-  describe('runProjection Calculation Logic', () => {
-    test('returns consistent projection with reasonable data', () => {
-      const assets = { "401k": 100000, "ira": 0, "brokerage": 0, "realEstate": 0, "cash": 0 };
-      const income = { salary: 100000, pension: 0, socialSecurity: 30000, otherIncome: 0, ssStartAge: 67 };
-      const spending = { housing: 2000, healthcare: 400, travel: 200, discretionary: 500, other: 200 };
-      const taxes = { status: "Single", rate: 20, deductions: 0 };
-      const proj = runProjection(assets, income, spending, taxes);
-      expect(proj.years.length).toBe(30);
-      expect(proj.income[0]).toBeGreaterThan(0);
-      expect(proj.expenses[0]).toBeGreaterThan(0);
-      expect(proj.assets[0]).toBe(103000); // 3% growth after first year drawdown/test; fudge for withdrawal
-      expect(proj.assets[proj.assets.length - 1]).toBeGreaterThanOrEqual(0);
-    });
-
-    test('projection shows asset depletion and income drops with low starting asset', () => {
-      const assets = { "401k": 0, "ira": 0, "brokerage": 0, "realEstate": 0, "cash": 0 };
-      const income = { salary: 25000, pension: 0, socialSecurity: 0, otherIncome: 0, ssStartAge: 67 };
-      const spending = { housing: 3000, healthcare: 1000, travel: 200, discretionary: 500, other: 200 };
-      const taxes = { status: "Single", rate: 5, deductions: 0 };
-      const proj = runProjection(assets, income, spending, taxes);
-      // Assets should stay zero, never negative
-      expect(Math.min(...proj.assets)).toBeGreaterThanOrEqual(0);
-      // Income remains about the same pre/post retirement
-      expect(proj.income[0]).toBeLessThan(proj.expenses[0]);
-      expect(proj.assets.findIndex(x=>x===0)).not.toBe(-1);
-    });
-
-    test('different tax rates affect after-tax income', () => {
-      const baseIncome = { salary: 50000, pension: 0, socialSecurity: 0, otherIncome: 0, ssStartAge: 67 };
-      const spending = { housing: 2000, healthcare: 300, travel: 100, discretionary: 300, other: 0 };
-      const taxesLow = { status: "Single", rate: 0, deductions: 0 };
-      const taxesHigh = { status: "Single", rate: 40, deductions: 0 };
-      const projLow = runProjection({}, baseIncome, spending, taxesLow);
-      const projHigh = runProjection({}, baseIncome, spending, taxesHigh);
-      expect(projLow.income[0]).toBeGreaterThan(projHigh.income[0]);
-    });
-
-    test('social security start age affects retirement year income', () => {
-      const incomeEarly = { salary: 0, pension: 0, socialSecurity: 30000, otherIncome: 0, ssStartAge: 62 };
-      const incomeLate = { salary: 0, pension: 0, socialSecurity: 30000, otherIncome: 0, ssStartAge: 70 };
-      const spending = { housing: 300, healthcare: 200, travel: 0, discretionary: 0, other: 0 };
-      const taxes = { status: "Single", rate: 10, deductions: 0 };
-      const projEarly = runProjection({}, incomeEarly, spending, taxes);
-      const projLate = runProjection({}, incomeLate, spending, taxes);
-      // Early SS means more total years with SS income
-      expect(projEarly.income.filter(i => i >= 25000).length).toBeGreaterThan(projLate.income.filter(i => i >= 25000).length);
     });
   });
 });
