@@ -708,6 +708,35 @@ function App() {
         onLogout={() => handleAuthenticate({ action: "logout" })}
       />
 
+      {/* Persistent guest mode banner if user is guest and not in AuthModal */}
+      {!showAuthModal && user && user.name === "Guest" && (
+        <div
+          className="auth-note"
+          data-testid="guest-mode-info"
+          style={{
+            background: "#fffbe7",
+            color: "#b17300",
+            border: "1.5px solid #ffe7ad",
+            borderRadius: 8,
+            padding: "13px 28px",
+            fontSize: "1.05em",
+            margin: "15px auto 0 auto",
+            maxWidth: 520,
+            boxShadow: "0 2px 7px rgba(110,100,10,0.06)",
+            position: "fixed",
+            left: "50%",
+            transform: "translateX(-50%)",
+            top: 18,
+            zIndex: 250
+          }}
+          aria-live="polite"
+          role="status"
+        >
+          <span role="img" aria-label="Info" style={{ marginRight: 9 }}>ℹ️</span>
+          You are in guest mode. <b>Data will not be saved.</b>
+        </div>
+      )}
+
       <main className="main-dashboard" aria-live="polite">
         {/* Top Section */}
         {selectedSection === "dashboard" && (
