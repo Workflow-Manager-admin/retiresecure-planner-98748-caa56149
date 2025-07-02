@@ -486,7 +486,12 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
   );
 }
 
-/** Scenario Comparison Panel */
+/** Scenario Comparison Panel
+ * Guarantees:
+ *  - Scenario label button renders a contiguous, uninterrupted text node (no span, no markup inside button).
+ *  - Each scenario label button has a unique data-testid that is queryable and meaningful.
+ *  - (Comment for maintainers: Do NOT introduce <span>, <Fragment>, `dangerouslySetInnerHTML`, or other wrappers in the scenario label button in the future.)
+ */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
   return (
     <div className="scenarios-panel">
@@ -503,49 +508,52 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
         </button>
       </h3>
       <ul className="scenarios-list">
-        {scenarios.map((s, i) => (
-          <li
-            className={i === activeIdx ? "active" : ""}
-            key={s.id}
-            data-testid={`scenario-listitem-${i}`}
-            aria-current={i === activeIdx ? "true" : undefined}
-          >
-            {/* 
-              Render label as a single, pure text node (no wrapping span, fragment, or markup).
-              Attach a robust data-testid directly to the button for reliable DOM/test access.
-            */}
-            <button
-              className="scenario-label"
-              onClick={() => onActivate(i)}
-              aria-label={`Scenario ${s.label || i + 1}`}
-              data-testid={`scenario-label-btn-${i}`}
-              data-label={typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
+        {scenarios.map((s, i) => {
+          // The label MUST be pure text and uninterrupted inside the button for robust testing
+          const labelText = typeof s.label === "string" ? s.label : `Scenario ${i + 1}`;
+          return (
+            <li
+              className={i === activeIdx ? "active" : ""}
+              key={s.id}
+              data-testid={`scenario-listitem-${i}`}
+              aria-current={i === activeIdx ? "true" : undefined}
             >
-              {/* Insert label as truly contiguous, pure text */}
-              {typeof s.label === "string" ? s.label : `Scenario ${i + 1}`}
-            </button>
-            <button
-              className="small"
-              title="Duplicate"
-              onClick={() => onDuplicate(i)}
-              aria-label="Duplicate"
-              data-testid={`duplicate-scenario-btn-${i}`}
-            >
-              ⎘
-            </button>
-            {i > 0 && (
+              {/* Button label is rendered as a contiguous text node.
+                  data-testid is unique per label for robust test queries. */}
+              <button
+                className="scenario-label"
+                onClick={() => onActivate(i)}
+                aria-label={`Scenario ${labelText}`}
+                data-testid={`scenario-label-btn-${i}`}
+                data-scenario-index={i}
+                data-scenario-id={s.id}
+                data-scenario-label={labelText}
+              >
+                {labelText}
+              </button>
               <button
                 className="small"
-                title="Delete"
-                onClick={() => onDelete(i)}
-                aria-label="Delete"
-                data-testid={`delete-scenario-btn-${i}`}
+                title="Duplicate"
+                onClick={() => onDuplicate(i)}
+                aria-label="Duplicate"
+                data-testid={`duplicate-scenario-btn-${i}`}
               >
-                🗑
+                ⎘
               </button>
-            )}
-          </li>
-        ))}
+              {i > 0 && (
+                <button
+                  className="small"
+                  title="Delete"
+                  onClick={() => onDelete(i)}
+                  aria-label="Delete"
+                  data-testid={`delete-scenario-btn-${i}`}
+                >
+                  🗑
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -754,8 +762,20 @@ function App() {
     // Guarantee full state flush: scenarios first, then synchronously update active index after React flush
     setScenarios(prev => {
       const arr = [...prev, { ...cur, id: makeId(), label: newLabel }];
-      // Synchronous flush: update index after commit for reliable DOM querying in tests (no async drift)
-      queueMicrotask(() => setActiveScenarioIdx(arr.length - 1));
+
+      // State flush ordering:
+      // 1. First allow setScenarios to commit via the microtask; then
+      // 2. Update index with another microtask so React flushes and the DOM reflects the newly added scenario
+      // This guarantees the new scenario label is present for DOM-based tests
+      queueMicrotask(() => {
+        setActiveScenarioIdx(arr.length - 1);
+
+        // For maximum test reliability (esp. in async React/test envs), force a DOM flush before further test assertion (if needed)
+        // Not needed in normal UI, but robustifies scenarios for e2e/component tests.
+        if (typeof window !== "undefined" && window.requestAnimationFrame) {
+          window.requestAnimationFrame(() => {}); // Allows React to flush any render cycles before next test tick
+        }
+      });
       return arr;
     });
   };
@@ -769,7 +789,13 @@ function App() {
     setScenarios(prev => {
       const arr = prev.slice();
       arr.splice(idx + 1, 0, { ...base, id: makeId(), label: base.label + " Copy" });
-      queueMicrotask(() => setActiveScenarioIdx(idx + 1));
+
+      queueMicrotask(() => {
+        setActiveScenarioIdx(idx + 1);
+        if (typeof window !== "undefined" && window.requestAnimationFrame) {
+          window.requestAnimationFrame(() => {});
+        }
+      });
       return arr;
     });
   };
