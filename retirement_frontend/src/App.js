@@ -36,7 +36,7 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
             tabIndex={0}
             role="listitem"
             aria-current={selected === section.key ? "true" : undefined}
-            aria-label={`Sidebar navigation item: ${section.label}`}
+            aria-label={section.label}
             onClick={() => onSelect(section.key)}
             data-testid={`sidebar-nav-${section.key}`}
           >
@@ -104,7 +104,7 @@ function Modal({ open, onClose, children, title, id }) {
           <h2 id={labelledById}>{title}</h2>
           <button
             className="modal-close"
-            aria-label={`Close ${title} modal${id ? ` (${id})` : ""}`}
+            aria-label={title ? `Close ${title} modal` : "Close"}
             onClick={onClose}
             type="button"
             data-testid={`${dialogId}-close-btn`}
@@ -629,7 +629,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           title="Add new scenario"
           style={{ marginLeft: 4 }}
           onClick={() => onCreate()}
-          aria-label="Add New Scenario"
+          aria-label="Add Scenario"
           role="button"
           id="add-scenario-btn"
           data-testid="add-scenario-btn"
@@ -643,7 +643,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
             <button
               className="scenario-label"
               onClick={() => onActivate(i)}
-              aria-label={`Activate scenario: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}${i === activeIdx ? " (active)" : ""}`}
+              aria-label="Scenario"
               role="button"
               id={`activate-scenario-btn-${i}`}
               data-testid={`activate-scenario-btn-${i}`}
@@ -654,7 +654,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               className="small"
               title="Duplicate Scenario"
               onClick={() => onDuplicate(i)}
-              aria-label={`Duplicate scenario: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
+              aria-label="Duplicate Scenario"
               role="button"
               id={`duplicate-scenario-btn-${i}`}
               data-testid={`duplicate-scenario-btn-${i}`}
@@ -666,7 +666,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
                 className="small"
                 title="Delete Scenario"
                 onClick={() => onDelete(i)}
-                aria-label={`Delete scenario: Scenario ${i + 1}${s.label ? ` (${s.label})` : ""}`}
+                aria-label="Delete Scenario"
                 role="button"
                 id={`delete-scenario-btn-${i}`}
                 data-testid={`delete-scenario-btn-${i}`}
