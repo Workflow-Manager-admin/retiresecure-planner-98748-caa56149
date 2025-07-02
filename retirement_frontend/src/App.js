@@ -106,18 +106,27 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
           onClick={() => setTab("login")}
+          type="button"
+          role="button"
+          aria-label="Login"
         >
           Login
         </button>
         <button
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
           onClick={() => setTab("register")}
+          type="button"
+          role="button"
+          aria-label="Register"
         >
           Register
         </button>
         <button
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
           onClick={() => setTab("guest")}
+          type="button"
+          role="button"
+          aria-label="Guest"
         >
           Guest
         </button>
@@ -131,6 +140,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label="Name"
+            id="auth-name"
           />
         )}
         {tab !== "guest" && (
@@ -142,6 +152,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               aria-label="Email"
+              id="auth-email"
             />
             <input
               type="password"
@@ -151,10 +162,22 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
               onChange={(e) => setPw(e.target.value)}
               aria-label="Password"
               minLength={4}
+              id="auth-password"
             />
           </>
         )}
-        <button className="primary" type="submit" aria-label="Continue">
+        <button
+          className="primary"
+          type="submit"
+          role="button"
+          aria-label={
+            tab === "login"
+              ? "Sign In"
+              : tab === "register"
+              ? "Sign Up"
+              : "Continue as Guest"
+          }
+        >
           {tab === "login"
             ? "Sign In"
             : tab === "register"
