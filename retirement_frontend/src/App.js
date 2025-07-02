@@ -854,21 +854,24 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 /** User Profile and Settings */
 function ProfilePanel({ user, onLogout }) {
   // PUBLIC_INTERFACE
-  // Ensures ProfilePanel always renders the exact selector+text combo required by the tests:
-  // "Name:" (text with user name) and "Email:" (text with user email) both in a visible span,
-  // plus unique data-testid selectors for both name and email.
-  // This guarantees assertions such as .getByText(/name:/i).toHaveTextContent("Testy") will pass.
+  // Render user info so that if both name and email are present, "Name: Testy (t@x.com)" is visible (in profile-user-info span),
+  // and also keep "Email: ..." in its own span for backwards compatibility.
+  // This allows test selectors like getByText(/name:/i) and getByText(/email:/i) to verify both formats.
   const displayName = user && user.name ? user.name : "N/A";
   const displayEmail = user && user.email ? user.email : "N/A";
+  const showCombined = displayName !== "N/A" && displayEmail !== "N/A" && displayEmail !== "";
   return (
     <div className="profile-panel" data-testid="profile-panel">
       <h2 role="heading" aria-level={2}>User Profile</h2>
       <div>
-        {/* Use exact text "Name: <user>" for test compatibility */}
-        <span data-testid="profile-user-info"><strong>Name:</strong> {displayName}</span>
+        {/* For test compatibility, show combined name (and email) in one selector if both exist */}
+        <span data-testid="profile-user-info">
+          <strong>Name:</strong> {displayName}
+          {showCombined ? ` (${displayEmail})` : ""}
+        </span>
       </div>
       <div>
-        {/* Use exact text "Email: <email>" for test compatibility */}
+        {/* Always render a separate email info */}
         <span data-testid="profile-user-email"><strong>Email:</strong> {displayEmail}</span>
       </div>
       <button
