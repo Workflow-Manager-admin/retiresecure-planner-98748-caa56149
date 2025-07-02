@@ -854,8 +854,8 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
 /** User Profile and Settings */
 function ProfilePanel({ user, onLogout }) {
   // PUBLIC_INTERFACE
-  // This panel always shows the user's name and email as "Name: [name] ([email])" in a single testable row
-  // for accessible test queries after registration/login.
+  // This panel presents the user's name and email exactly as "Name: [Name]", followed by an "Email: [email]" line,
+  // so test queries for either "Name: Testy" or "Email: t@x.com" (as in test assertions) will always match.
   const displayName = user && user.name ? user.name : "N/A";
   const displayEmail = user && user.email ? user.email : "N/A";
   return (
@@ -867,7 +867,16 @@ function ProfilePanel({ user, onLogout }) {
           data-testid="profile-user-info"
           style={{ marginLeft: 0 }}
         >
-          {displayName} ({displayEmail})
+          {displayName}
+        </span>
+      </div>
+      <div>
+        <strong>Email:</strong>{" "}
+        <span
+          data-testid="profile-user-email"
+          style={{ marginLeft: 0 }}
+        >
+          {displayEmail}
         </span>
       </div>
       <button
