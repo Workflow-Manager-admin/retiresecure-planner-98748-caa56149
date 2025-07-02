@@ -289,7 +289,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
           type="button"
-          role="button"
+          role="tab"
           aria-label="Login"
           aria-pressed={tab === "login"}
           aria-selected={tab === "login"}
@@ -301,7 +301,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         <button
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
           type="button"
-          role="button"
+          role="tab"
           aria-label="Register"
           aria-pressed={tab === "register"}
           aria-selected={tab === "register"}
@@ -313,7 +313,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         <button
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
           type="button"
-          role="button"
+          role="tab"
           aria-label="Guest"
           aria-pressed={tab === "guest"}
           aria-selected={tab === "guest"}
@@ -325,16 +325,42 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
       </div>
       <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {panel}
-        <button
-          className="primary"
-          type="submit"
-          role="button"
-          aria-label={submitLabel}
-          data-testid="auth-submit-btn"
-          tabIndex={0}
-        >
-          {submitLabel}
-        </button>
+        {tab === "login" && (
+          <button
+            className="primary"
+            type="submit"
+            role="button"
+            aria-label="Sign In"
+            data-testid="auth-submit-btn"
+            tabIndex={0}
+          >
+            Sign In
+          </button>
+        )}
+        {tab === "register" && (
+          <button
+            className="primary"
+            type="submit"
+            role="button"
+            aria-label="Sign Up"
+            data-testid="auth-submit-btn"
+            tabIndex={0}
+          >
+            Sign Up
+          </button>
+        )}
+        {tab === "guest" && (
+          <button
+            className="primary"
+            type="submit"
+            role="button"
+            aria-label="Continue as Guest"
+            data-testid="auth-submit-btn"
+            tabIndex={0}
+          >
+            Continue as Guest
+          </button>
+        )}
       </form>
       {error && <div className="auth-error" aria-live="assertive">{error}</div>}
       {tab === "guest" && (
@@ -738,7 +764,7 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
           title="Add Scenario"
           style={{ marginLeft: 4 }}
           onClick={onCreate}
-          aria-label="Add Scenario"
+          aria-label="+"
           role="button"
           id="add-scenario-btn"
           data-testid="add-scenario-btn"
