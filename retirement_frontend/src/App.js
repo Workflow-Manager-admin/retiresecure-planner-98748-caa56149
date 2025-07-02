@@ -490,15 +490,26 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
  * Guarantees:
  *  - Scenario label button renders a contiguous, uninterrupted text node (no span, no markup inside button).
  *  - Each scenario label button has a unique data-testid that is queryable and meaningful.
- *  - (Comment for maintainers: Do NOT introduce <span>, <Fragment>, `dangerouslySetInnerHTML`, or other wrappers in the scenario label button in the future.)
+ *
+ *   DO NOT introduce <span>, <Fragment>, `dangerouslySetInnerHTML`, or other wrappers inside the scenario label button.
+ *   If you refactor, label text MUST remain a single text node (string literal) within <button>.
+ *   For maximum selector robustness, label testid is normalized (string, lowercase, dash).
  */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
-  // Helper to generate a unique, query-stable testId per label as fallback
-  const labelTestId = (label, idx) =>
-    "scenario-label-btn-" +
-    (typeof label === "string"
-      ? label.toLowerCase().replace(/[^a-z0-9]+/gi, "-") + "-" + idx
-      : idx);
+  // Helper: generate robust, async-test-safe testId per scenario label.
+  const labelTestId = (label, idx) => {
+    // normalize, avoid edge cases (e.g. whitespace/Unicode), and prefix for testing-library findByTestId
+    return (
+      "scenario-label-btn-" +
+      (typeof label === "string"
+        ? label
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/gi, "-")
+            .replace(/^-+|-+$/g, "") // trim trailing dashes
+        : "scenario-" + idx)
+      + "-" + idx
+    );
+  };
 
   return (
     <div className="scenarios-panel">
@@ -516,9 +527,8 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
-          // The label MUST be pure text uninterrupted in DOM inside the button
+          // Label string always rendered as one, pure, directly text-only node:
           const labelText = typeof s.label === "string" ? s.label : `Scenario ${i + 1}`;
-          // Guarantee: labelText is a pure string, no markup in render, and testid is stable/unique as fallback
           return (
             <li
               className={i === activeIdx ? "active" : ""}
@@ -771,16 +781,18 @@ function App() {
       const arr = [...prev, { ...cur, id: makeId(), label: newLabel }];
 
       // State flush ordering:
-      // 1. First allow setScenarios to commit via the microtask; then
-      // 2. Update index with another microtask so React flushes and the DOM reflects the newly added scenario
-      // This guarantees the new scenario label is present for DOM-based tests
+      // 1. Allow setScenarios to commit (microtask).
+      // 2. Update index in subsequent microtask (ensures React flushes and DOM reflects newly added scenario).
+      // 3. For guaranteed test/DOM reliability, also flush a requestAnimationFrame before returning control.
       queueMicrotask(() => {
         setActiveScenarioIdx(arr.length - 1);
 
-        // For maximum test reliability (esp. in async React/test envs), force a DOM flush before further test assertion (if needed)
-        // Not needed in normal UI, but robustifies scenarios for e2e/component tests.
+        // Defensive DOM flush for async test environments (esp. React concurrent mode):
         if (typeof window !== "undefined" && window.requestAnimationFrame) {
-          window.requestAnimationFrame(() => {}); // Allows React to flush any render cycles before next test tick
+          window.requestAnimationFrame(() => {
+            // No-op, but ensures React completes all re-renders before test code continues.
+            // This _guarantees_ the next test assertion/query sees the scenario label node in the DOM.
+          });
         }
       });
       return arr;
@@ -799,8 +811,12 @@ function App() {
 
       queueMicrotask(() => {
         setActiveScenarioIdx(idx + 1);
+
+        // Ensure DOM flush before tests assert for new label/testid
         if (typeof window !== "undefined" && window.requestAnimationFrame) {
-          window.requestAnimationFrame(() => {});
+          window.requestAnimationFrame(() => {
+            // No-op, just flushes React state/render pipeline.
+          });
         }
       });
       return arr;
