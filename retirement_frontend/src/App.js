@@ -807,44 +807,54 @@ function describeSpending(s) {
  * Exposed for direct unit testing.
  */
 export function runProjection(assets, income, spending, taxesInput) {
-  // Simulate a basic projection over 30 years.
-  // - Assume retirement at 67 (or when social security starts).
-  // - Asset drawdown is used to cover expenses not covered by income.
-  // - Social Security, pension, other recurring income; apply basic tax rate.
-  // - Model required minimum distributions from 401k/IRA at age 73+
+  // Simulates a 30-year retirement projection with edge-case handling for
+  //  - tax (with deduction support),
+  //  - RMDs,
+  //  - strict non-negative asset enforcement,
+  //  - withdrawal order: cash → brokerage → IRA → 401K
+  // Consistent with the requirements of the test suite.
+
   const years = [];
   const startYear = new Date().getFullYear();
   const AGE_RETIRE = income.ssStartAge ? Number(income.ssStartAge) : 67;
-  const curAge = 45; // Assume
+  const curAge = 45; // Simulation starting age
   const horizon = 30;
   let age = curAge;
+
+  // Defensive copy and normalization
   let assetsYear = {
-    "401k": Number(assets["401k"] || 0),
-    ira: Number(assets["ira"] || 0),
-    brokerage: Number(assets["brokerage"] || 0),
-    realEstate: Number(assets["realEstate"] || 0),
-    cash: Number(assets["cash"] || 0),
+    "401k": Math.max(0, Number(assets && assets["401k"] || 0)),
+    ira: Math.max(0, Number(assets && assets["ira"] || 0)),
+    brokerage: Math.max(0, Number(assets && assets["brokerage"] || 0)),
+    realEstate: Math.max(0, Number(assets && assets["realEstate"] || 0)), // untouched by drawdowns
+    cash: Math.max(0, Number(assets && assets["cash"] || 0)),
   };
+
+  let taxRate = Number(taxesInput && taxesInput.rate != null ? taxesInput.rate : 20) / 100;
+  let taxDeductions = Number(taxesInput && taxesInput.deductions ? taxesInput.deductions : 0);
+
   let incomeArr = [];
   let expensesArr = [];
   let assetsArr = [];
   let curTotal = getAssetsTotal(assetsYear);
-  let taxRate = Number(taxesInput.rate || 20) / 100;
 
   for (let i = 0; i < horizon; ++i) {
     const year = startYear + i;
     const retired = age >= AGE_RETIRE;
-    let incomeThisYear = 0;
+    let earnedIncome = 0;
+
     if (!retired) {
-      incomeThisYear = Number(income.salary || 0);
+      earnedIncome = Number(income.salary || 0);
     }
     if (retired) {
-      incomeThisYear += Number(income.pension || 0) + Number(income.otherIncome || 0);
-      // Social security starts at ssStartAge.
+      earnedIncome += Number(income.pension || 0) + Number(income.otherIncome || 0);
+      // Social Security starts at ssStartAge
       if (age >= Number(income.ssStartAge || 67)) {
-        incomeThisYear += Number(income.socialSecurity || 0);
+        earnedIncome += Number(income.socialSecurity || 0);
       }
     }
+
+    // Calculate total expenses for the year
     let expensesThisYear =
       Number(spending.housing || 0) * 12 +
       Number(spending.healthcare || 0) * 12 +
@@ -852,68 +862,90 @@ export function runProjection(assets, income, spending, taxesInput) {
       Number(spending.discretionary || 0) * 12 +
       Number(spending.other || 0) * 12;
 
-    // Apply taxes on income (simple)
-    const taxesOwed = incomeThisYear * taxRate;
-    incomeThisYear -= taxesOwed;
+    // Taxable income calculation (deductions apply, but can't reduce below zero)
+    let grossTaxableIncome = Math.max(0, earnedIncome - taxDeductions);
+    let taxesOwed = grossTaxableIncome * taxRate;
+    // Enforce minimum zero if no income
+    taxesOwed = Math.max(0, taxesOwed);
 
-    // Drawdown assets if not enough income to cover expenses.
+    // After-tax income disbursed for spending
+    let afterTaxIncome = earnedIncome - taxesOwed;
+
+    // RMD trigger: At/after age 73, required to take withdrawals from 401k/IRA
+    let rmd401k = 0, rmdIra = 0;
+    if (retired && age >= 73) {
+      // Simple RMD: 4% of remaining balance at start of year (common for simplified calculators)
+      rmd401k = Math.min(assetsYear["401k"], assetsYear["401k"] * 0.04);
+      rmdIra = Math.min(assetsYear["ira"], assetsYear["ira"] * 0.04);
+      assetsYear["401k"] -= rmd401k;
+      assetsYear["ira"] -= rmdIra;
+      // Apply RMDs as "forced" withdrawals, treated as income for spending (NOT double taxed)
+      afterTaxIncome += rmd401k + rmdIra;
+    }
+
+    // Calculate needed asset draw if after-tax income is insufficient for expenses
     let assetDraw = 0;
-    if (incomeThisYear < expensesThisYear) {
-      assetDraw = expensesThisYear - incomeThisYear;
-      // Withdraw from cash, brokerage, IRA, 401k (in that order)
+    let totalWithdrawn = {"cash": 0, "brokerage": 0, "ira": 0, "401k": 0};
+    if (afterTaxIncome < expensesThisYear) {
+      assetDraw = expensesThisYear - afterTaxIncome;
       let remaining = assetDraw;
-      let out401k = 0, outIra = 0, outB = 0, outC = 0;
-      // Required minimum distribution if age >= 73 (from 401k, ira)
-      if (retired && age >= 73) {
-        const rmd401k = Math.min(assetsYear["401k"], assetsYear["401k"] * 0.04);
-        const rmdIra = Math.min(assetsYear["ira"], assetsYear["ira"] * 0.04);
-        out401k += rmd401k; outIra += rmdIra;
-        assetsYear["401k"] -= rmd401k; assetsYear["ira"] -= rmdIra;
-        remaining -= (rmd401k + rmdIra);
-      }
-      // Cash
+
+      // Withdrawal order: cash -> brokerage -> ira -> 401k
+      // Enforce non-negative accounts at each step
       if (assetsYear.cash > 0 && remaining > 0) {
         let canTake = Math.min(assetsYear.cash, remaining);
-        outC += canTake;
+        totalWithdrawn.cash = canTake;
         assetsYear.cash -= canTake;
         remaining -= canTake;
       }
-      // Brokerage
       if (assetsYear.brokerage > 0 && remaining > 0) {
         let canTake = Math.min(assetsYear.brokerage, remaining);
-        outB += canTake;
+        totalWithdrawn.brokerage = canTake;
         assetsYear.brokerage -= canTake;
         remaining -= canTake;
       }
-      // IRA
       if (assetsYear.ira > 0 && remaining > 0) {
         let canTake = Math.min(assetsYear.ira, remaining);
-        outIra += canTake;
+        totalWithdrawn.ira = canTake;
         assetsYear.ira -= canTake;
         remaining -= canTake;
       }
-      // 401k
       if (assetsYear["401k"] > 0 && remaining > 0) {
         let canTake = Math.min(assetsYear["401k"], remaining);
-        out401k += canTake;
+        totalWithdrawn["401k"] = canTake;
         assetsYear["401k"] -= canTake;
         remaining -= canTake;
       }
-      // Negative asset means fully depleted.
+      // If all sources depleted and still short, nothing more can be withdrawn
+      // Do NOT allow balances to go negative; remaining shortfall is simply not covered
     }
-    // Add basic investment growth for non-spent assets (3%/year)
+
+    // Strictly set negative asset categories to zero (enforce >=0 everywhere)
+    for (let key of ["cash", "brokerage", "ira", "401k"]) {
+      if (assetsYear[key] < 0 || isNaN(assetsYear[key])) assetsYear[key] = 0;
+    }
+
+    // Growth: only on non-spent real assets (not on real estate for simplicity per spec; can be changed)
     Object.keys(assetsYear).forEach((k) => {
-      if (assetsYear[k] > 0) assetsYear[k] *= 1.03;
+      // Only grow if not depleted/negative, applies to all except real estate (which is not spent down)
+      if (["cash", "brokerage", "ira", "401k"].includes(k) && assetsYear[k] > 0) {
+        assetsYear[k] *= 1.03;
+      }
+      // Apply floor again
       assetsYear[k] = Math.max(0, assetsYear[k]);
     });
 
+    // Final tally for end of year
     curTotal = getAssetsTotal(assetsYear);
     years.push(year);
-    incomeArr.push(Math.round(incomeThisYear));
+    // Round for display/testing
+    incomeArr.push(Math.round(afterTaxIncome));
     expensesArr.push(Math.round(expensesThisYear));
     assetsArr.push(Math.round(curTotal));
+
     age += 1;
   }
+
   return {
     years,
     income: incomeArr,
