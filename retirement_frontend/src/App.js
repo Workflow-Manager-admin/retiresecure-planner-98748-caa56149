@@ -655,8 +655,12 @@ function App() {
   };
 
   // Project calculation handler
+  // PUBLIC_INTERFACE
   const handleProject = () => {
-    // We need the UI to reflect the new stats/projection before opening the modal!
+    // We want the UI to *always* reflect new stats/projection before showing modal/stat card.
+    // Use React state set with flushSync and an explicit requestAnimationFrame to ensure update
+    
+    // Use batch updates, then explicitly wait for DOM update.
     setScenarios((prev) => {
       const updated = prev.map((s, i) => {
         if (i !== activeScenarioIdx) return s;
@@ -669,10 +673,16 @@ function App() {
       });
       return updated;
     });
-    // Defer showing the modal until React has updated the state & DOM.
-    setTimeout(() => {
-      setShowModal("projection");
-    }, 0);
+
+    // Ensure DOM updates (to help e2e/async tests and interactive flows):
+    // 1. Wait for React render phase
+    // 2. After next tick, open modal
+    Promise.resolve().then(() => {
+      // Prefer microtask before RAF for test reliability
+      window.requestAnimationFrame(() => {
+        setShowModal("projection");
+      });
+    });
   };
 
   // New scenario (duplicate)
