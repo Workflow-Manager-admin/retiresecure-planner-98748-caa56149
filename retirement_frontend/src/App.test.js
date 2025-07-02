@@ -160,19 +160,23 @@ describe('RetireSecure Planner Retirement Projections', () => {
       expect(screen.getByText(/first year income/i).closest('.stat-card')).toHaveTextContent(/\$[0-9,]+/);
     });
 
-    test('guest mode disables persistence & shows proper user state', () => {
+    test('guest mode disables persistence & shows proper user state', async () => {
       render(<App />);
       fireEvent.click(screen.getByRole('button', { name: /guest/i }));
-      fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
+      // Wait for guest "Continue as Guest" button to become available
+      const continueBtn = await screen.findByRole('button', { name: /continue as guest/i });
+      fireEvent.click(continueBtn);
       expect(screen.getByText(/guest/i)).toBeInTheDocument();
       fireEvent.click(screen.getByRole('listitem', { name: /profile/i }));
       expect(screen.getByText(/data will not be saved/i)).not.toBeInTheDocument();
     });
 
-    test('multiple scenarios: add, duplicate, compare, and delete', () => {
+    test('multiple scenarios: add, duplicate, compare, and delete', async () => {
       render(<App />);
       fireEvent.click(screen.getByRole('button', { name: /guest/i }));
-      fireEvent.click(screen.getByRole('button', { name: /continue as guest/i }));
+      // Wait for guest "Continue as Guest" button
+      const continueBtn = await screen.findByRole('button', { name: /continue as guest/i });
+      fireEvent.click(continueBtn);
 
       // Go to scenarios tab
       fireEvent.click(screen.getByRole('listitem', { name: /scenarios/i }));
