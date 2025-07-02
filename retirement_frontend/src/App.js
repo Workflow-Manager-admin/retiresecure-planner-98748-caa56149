@@ -468,7 +468,10 @@ const TAX_LABELS = [
   { key: "deductions", label: "Deductions", type: "number", default: 0}
 ];
 
-// PUBLIC_INTERFACE
+/**
+ * PUBLIC_INTERFACE
+ * Main application component for RetireSecure Planner.
+ */
 function App() {
   // Auth state
   const [user, setUser] = useState(null);
@@ -948,3 +951,8 @@ function calcStats(projection) {
 }
 
 export default App;
+
+// PUBLIC_INTERFACE
+export {
+  runProjection
+};
