@@ -304,17 +304,34 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
 
 /** Dashboard Quick Stats + Actions */
 function Dashboard({ stats, data, onEdit, onProject, onNewScenario }) {
+  // Ensure stat values are always computed in render for latest value (remove stale dash issues)
+  const retirementAgeVal =
+    stats.retirementAge !== undefined && stats.retirementAge !== null && stats.retirementAge !== "—"
+      ? stats.retirementAge
+      : "—";
+  const firstYearIncomeVal =
+    stats.firstYearIncome !== undefined && stats.firstYearIncome !== null && !Number.isNaN(stats.firstYearIncome)
+      ? `$${fmtMoney(stats.firstYearIncome)}`
+      : "—";
+  const depletionRiskVal =
+    stats.depletionRisk !== undefined && stats.depletionRisk !== null && stats.depletionRisk !== ""
+      ? `${stats.depletionRisk}%`
+      : "—";
   return (
     <div className="dashboard">
       <h1 style={{ marginBottom: 0 }}>Retirement Overview</h1>
       <div className="quick-stats">
-        <StatCard label="Retirement Age" value={stats.retirementAge || "—"} />
-        <StatCard label="First Year Income" value={stats.firstYearIncome ? `$${fmtMoney(stats.firstYearIncome)}` : "—"} />
-        <StatCard label="Asset Depletion Risk" value={stats.depletionRisk != null ? `${stats.depletionRisk}%` : "—"} />
+        <StatCard label="Retirement Age" value={retirementAgeVal} />
+        <StatCard label="First Year Income" value={firstYearIncomeVal} />
+        <StatCard label="Asset Depletion Risk" value={depletionRiskVal} />
       </div>
       <div className="dashboard-actions">
-        <button className="primary" onClick={onProject}>Project Retirement Income</button>
-        <button className="secondary" onClick={onNewScenario}>New Scenario</button>
+        <button className="primary" onClick={onProject}>
+          Project Retirement Income
+        </button>
+        <button className="secondary" onClick={onNewScenario}>
+          New Scenario
+        </button>
       </div>
       <div className="consolidated-data">
         <h2>Current Summary</h2>
@@ -326,9 +343,10 @@ function Dashboard({ stats, data, onEdit, onProject, onNewScenario }) {
 
 /** Stat Card in Dashboard */
 function StatCard({ value, label }) {
+  // Give each stat a unique testid for async test reliability
   return (
-    <div className="stat-card">
-      <div className="stat-value">{value}</div>
+    <div className="stat-card" data-testid={`stat-card-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+      <div className="stat-value" data-testid={`stat-value-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>{value}</div>
       <div className="stat-label">{label}</div>
     </div>
   );
@@ -474,19 +492,51 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
     <div className="scenarios-panel">
       <h3>
         Scenarios
-        <button className="small" title="Add new scenario" style={{marginLeft:4}} onClick={() => onCreate()}>
+        <button
+          className="small"
+          title="Add new scenario"
+          style={{ marginLeft: 4 }}
+          onClick={() => onCreate()}
+          data-testid="add-scenario-button"
+        >
           +
         </button>
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => (
-          <li className={i === activeIdx ? "active" : ""} key={s.id}>
-            <button className="scenario-label" onClick={() => onActivate(i)}>
+          <li
+            className={i === activeIdx ? "active" : ""}
+            key={s.id}
+            data-testid={`scenario-listitem-${i}`}
+            aria-current={i === activeIdx ? "true" : undefined}
+          >
+            <button
+              className="scenario-label"
+              onClick={() => onActivate(i)}
+              aria-label={`Scenario ${s.label || i + 1}`}
+              data-testid={`scenario-label-btn-${i}`}
+            >
               {s.label || `Scenario ${i + 1}`}
             </button>
-            <button className="small" title="Duplicate" onClick={() => onDuplicate(i)}>⎘</button>
+            <button
+              className="small"
+              title="Duplicate"
+              onClick={() => onDuplicate(i)}
+              aria-label="Duplicate"
+              data-testid={`duplicate-scenario-btn-${i}`}
+            >
+              ⎘
+            </button>
             {i > 0 && (
-              <button className="small" title="Delete" onClick={() => onDelete(i)}>🗑</button>
+              <button
+                className="small"
+                title="Delete"
+                onClick={() => onDelete(i)}
+                aria-label="Delete"
+                data-testid={`delete-scenario-btn-${i}`}
+              >
+                🗑
+              </button>
             )}
           </li>
         ))}
@@ -661,8 +711,7 @@ function App() {
   // Project calculation handler
   // PUBLIC_INTERFACE
   const handleProject = () => {
-    // We want the UI to always reflect new stats/projection before showing modal/stat card.
-    // For robust propagation, we use the updater AND ensure modal opening waits for React to re-render.
+    // Update scenario and force UI flush before opening modal/stat
     setScenarios((prev) => {
       const updated = prev.map((s, i) => {
         if (i !== activeScenarioIdx) return s;
@@ -676,13 +725,10 @@ function App() {
       return updated;
     });
 
-    // Make sure modal opens after React updates the DOM.
-    // Use microtask for higher reliability, then requestAnimationFrame.
-    Promise.resolve().then(() => {
-      window.requestAnimationFrame(() => {
-        setShowModal("projection");
-      });
-    });
+    // Force DOM/UI flush for stats before modal shows, so async test sees new number not dash
+    Promise.resolve()
+      .then(() => Promise.resolve())
+      .then(() => window.requestAnimationFrame(() => setShowModal("projection")));
   };
 
   // Improved: New scenario (duplicate), reliably update the DOM for scenario label for async test and runtime
