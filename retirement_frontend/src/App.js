@@ -56,11 +56,20 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
 /** Modal Dialog wrapper (generic) */
 function Modal({ open, onClose, children, title }) {
   if (!open) return null;
+  // Generate a unique id for label association. Use title or empty fallback.
+  const titleId = `modal-title-${typeof title === "string" ? title.toLowerCase().replace(/[^a-z0-9]+/gi, "-") : Math.random().toString(36).slice(2)}`;
+
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" tabIndex={-1}>
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+      aria-labelledby={titleId}
+    >
       <div className="modal-content">
         <div className="modal-header">
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button
             className="modal-close"
             aria-label="Close"
