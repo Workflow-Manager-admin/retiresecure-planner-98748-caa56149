@@ -1297,13 +1297,14 @@ function App() {
             comparison={null}
           />
           <div style={{ margin: "14px 0" }}>
+            {/* Only one visible close button: uniquely labeled for test and accessibility clarity */}
             <button
               className="primary"
               onClick={() => setShowModal(null)}
               autoFocus
-              aria-label="Close"
-              data-testid="close-projection-btn"
-              id="close-projection-btn"
+              aria-label="Close Projection Modal"
+              data-testid="projection-modal-close-btn"
+              id="projection-modal-close-btn"
               role="button"
             >
               Close
