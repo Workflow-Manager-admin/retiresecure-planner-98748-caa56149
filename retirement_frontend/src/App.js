@@ -117,7 +117,12 @@ function Modal({ open, onClose, children, title, id }) {
   );
 }
 
-/** Authentication Component (login/register/guest) */
+/** Authentication Component (login/register/guest)
+ * - Always render Login, Register, and Guest tab buttons,
+ * - Buttons must have visible text ("Login", "Register", "Guest"), role="button", correct aria-label for test/ax,
+ * - Tab switch only changes visible panel, not DOM presence,
+ * - Ensure accessibility/aria and match testing-library queries (esp. 'name' for getByRole).
+ */
 function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
   const [tab, setTab] = useState(initialTab);
   const [email, setEmail] = useState("");
@@ -135,93 +140,163 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
     }
   };
 
-  // Ensure modal is removed after closure (open=false → Modal unmounts from DOM)
+  // Each of Login, Register, Guest is always in the DOM for test discovery, visibility toggled by tab.
   return (
     <Modal
       open={open}
-      onClose={() => {}} // Login modal cannot be closed except by auth: this disables close action
+      onClose={() => {}}
       title="Welcome to RetireSecure"
       id="auth-modal"
     >
-      <div style={{ marginBottom: 20, display: "flex", gap: 8 }}>
+      <div
+        style={{ marginBottom: 20, display: "flex", gap: 8 }}
+        role="tablist"
+        aria-label="Authentication Modes"
+      >
+        {/* Tab buttons (always in DOM) */}
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
-          onClick={() => setTab("login")}
           type="button"
-          role="tab"
-          aria-selected={tab === "login"}
-          aria-controls="auth-modal"
+          role="button"
+          aria-label="Login"
+          aria-pressed={tab === "login"}
+          onClick={() => setTab("login")}
+          tabIndex={0}
           id="tab-login"
+          data-testid="tab-login"
         >
           Login
         </button>
         <button
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
-          onClick={() => setTab("register")}
           type="button"
-          role="tab"
-          aria-selected={tab === "register"}
-          aria-controls="auth-modal"
+          role="button"
+          aria-label="Register"
+          aria-pressed={tab === "register"}
+          onClick={() => setTab("register")}
+          tabIndex={0}
           id="tab-register"
+          data-testid="tab-register"
         >
           Register
         </button>
         <button
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
-          onClick={() => setTab("guest")}
           type="button"
-          role="tab"
-          aria-selected={tab === "guest"}
-          aria-controls="auth-modal"
+          role="button"
+          aria-label="Guest"
+          aria-pressed={tab === "guest"}
+          onClick={() => setTab("guest")}
+          tabIndex={0}
           id="tab-guest"
+          data-testid="tab-guest"
         >
           Guest
         </button>
       </div>
+      {/* Panel for selected tab, but tab selectors always present */}
+      {/* Only render one panel at a time; submit button always present (w/ correct label/text) */}
       <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {tab === "register" && (
+        {/* Panels for each tab */}
+        {/* Login Panel */}
+        <div
+          role="tabpanel"
+          aria-labelledby="tab-login"
+          id="tabpanel-login"
+          hidden={tab !== "login"}
+          style={{ display: tab === "login" ? "flex" : "none", flexDirection: "column", gap: 8 }}
+          data-testid="login-panel"
+        >
+          {/* Login only needs email/password */}
+          <input
+            type="email"
+            placeholder="Email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-label="Email"
+            id="auth-email"
+            autoComplete="username"
+            tabIndex={tab === "login" ? 0 : -1}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            required
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            aria-label="Password"
+            minLength={4}
+            id="auth-password"
+            autoComplete="current-password"
+            tabIndex={tab === "login" ? 0 : -1}
+          />
+        </div>
+        {/* Register Panel */}
+        <div
+          role="tabpanel"
+          aria-labelledby="tab-register"
+          id="tabpanel-register"
+          hidden={tab !== "register"}
+          style={{ display: tab === "register" ? "flex" : "none", flexDirection: "column", gap: 8 }}
+          data-testid="register-panel"
+        >
           <input
             type="text"
             placeholder="Name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            aria-label="Account Name"
+            aria-label="Name"
             id="auth-name"
+            autoComplete="name"
+            tabIndex={tab === "register" ? 0 : -1}
           />
-        )}
-        {tab !== "guest" && (
-          <>
-            <input
-              type="email"
-              placeholder="Email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-label="User Email"
-              id="auth-email"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              required
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              aria-label="User Password"
-              minLength={4}
-              id="auth-password"
-            />
-          </>
-        )}
+          <input
+            type="email"
+            placeholder="Email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-label="Email"
+            id="auth-email"
+            autoComplete="username"
+            tabIndex={tab === "register" ? 0 : -1}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            required
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            aria-label="Password"
+            minLength={4}
+            id="auth-password"
+            autoComplete="new-password"
+            tabIndex={tab === "register" ? 0 : -1}
+          />
+        </div>
+        {/* Guest Panel */}
+        <div
+          role="tabpanel"
+          aria-labelledby="tab-guest"
+          id="tabpanel-guest"
+          hidden={tab !== "guest"}
+          style={{ display: tab === "guest" ? "flex" : "none", flexDirection: "column", gap: 8 }}
+          data-testid="guest-panel"
+        >
+          {/* No inputs for guest */}
+        </div>
+        {/* The submit button (always present in DOM, label matches visible panel) */}
         <button
           className="primary"
           type="submit"
           role="button"
           aria-label={
             tab === "login"
-              ? "Sign In to RetireSecure"
+              ? "Sign In"
               : tab === "register"
-              ? "Sign Up for RetireSecure"
+              ? "Sign Up"
               : "Continue as Guest"
           }
           data-testid="auth-submit-btn"
@@ -234,11 +309,15 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         </button>
       </form>
       {error && <div className="auth-error" aria-live="assertive">{error}</div>}
-      {tab === "guest" && (
-        <div className="auth-note">
-          You are continuing as a guest. Data will not be saved.
-        </div>
-      )}
+      {/* Guest mode info always present but only exposed when visible */}
+      <div
+        className="auth-note"
+        aria-live="polite"
+        style={{ display: tab === "guest" ? "block" : "none" }}
+        data-testid="guest-note"
+      >
+        You are continuing as a guest. Data will not be saved.
+      </div>
     </Modal>
   );
 }
