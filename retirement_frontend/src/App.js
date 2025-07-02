@@ -104,18 +104,27 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
           onClick={() => setTab("login")}
+          aria-label="Login"
+          data-testid="login-tab"
+          type="button"
         >
           Login
         </button>
         <button
           className={"switch-tab" + (tab === "register" ? " selected" : "")}
           onClick={() => setTab("register")}
+          aria-label="Register"
+          data-testid="register-tab"
+          type="button"
         >
           Register
         </button>
         <button
           className={"switch-tab" + (tab === "guest" ? " selected" : "")}
           onClick={() => setTab("guest")}
+          aria-label="Guest"
+          data-testid="guest-tab"
+          type="button"
         >
           Guest
         </button>
@@ -152,7 +161,24 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
             />
           </>
         )}
-        <button className="primary" type="submit" aria-label="Continue">
+        <button
+          className="primary"
+          type="submit"
+          aria-label={
+            tab === "login"
+              ? "Sign In"
+              : tab === "register"
+              ? "Sign Up"
+              : "Continue as Guest"
+          }
+          data-testid={
+            tab === "login"
+              ? "sign-in-button"
+              : tab === "register"
+              ? "sign-up-button"
+              : "continue-as-guest-button"
+          }
+        >
           {tab === "login"
             ? "Sign In"
             : tab === "register"
