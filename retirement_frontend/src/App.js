@@ -35,6 +35,8 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
             }
             tabIndex={0}
             aria-current={selected === section.key}
+            aria-label={section.label}
+            role="listitem"
             onClick={() => onSelect(section.key)}
           >
             {section.label}
