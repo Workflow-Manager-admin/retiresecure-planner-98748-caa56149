@@ -643,10 +643,18 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary, chartId
   );
 }
 
-/** Scenario Comparison Panel */
+/** Scenario Comparison Panel 
+ *  Ensures all controls are always present and discoverable for accessibility and automation.
+ */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
+  // Always render an Add Scenario button even if 0 scenarios present (edge, but for testability).
   return (
-    <div className="scenarios-panel" role="region" aria-label="Scenario Panel" data-testid="scenario-panel">
+    <div
+      className="scenarios-panel"
+      role="region"
+      aria-label="Scenario Panel"
+      data-testid="scenario-panel"
+    >
       <h3 role="heading" aria-level={3} id="scenarios-heading">
         Scenarios
         <button
@@ -663,44 +671,74 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
         </button>
       </h3>
       <ul className="scenarios-list" role="list" aria-labelledby="scenarios-heading">
-        {scenarios.map((s, i) => (
-          <li className={i === activeIdx ? "active" : ""} key={s.id} role="listitem" aria-current={i === activeIdx}>
-            <button
+        {scenarios.length === 0 ? (
+          <li role="listitem" aria-current={false}>
+            <span
               className="scenario-label"
-              onClick={() => onActivate(i)}
-              aria-label={s.label || `Scenario ${i + 1}`}
-              role="button"
-              id={`activate-scenario-btn-${i}`}
-              data-testid={`activate-scenario-btn-${i}`}
+              aria-label="No Scenarios"
+              data-testid="scenario-label-none"
             >
-              {s.label || `Scenario ${i + 1}`}
-            </button>
-            <button
-              className="small"
-              title="Duplicate"
-              onClick={() => onDuplicate(i)}
-              aria-label="Duplicate"
-              role="button"
-              id={`duplicate-scenario-btn-${i}`}
-              data-testid={`duplicate-scenario-btn-${i}`}
+              No scenarios defined.
+            </span>
+          </li>
+        ) : (
+          scenarios.map((s, i) => (
+            <li
+              className={i === activeIdx ? "active" : ""}
+              key={s.id}
+              role="listitem"
+              aria-current={i === activeIdx ? "true" : "false"}
+              data-testid={`scenario-listitem-${i}`}
             >
-              Duplicate
-            </button>
-            {i > 0 && (
+              <button
+                className="scenario-label"
+                onClick={() => onActivate(i)}
+                aria-label={
+                  s.label
+                    ? `Select scenario: ${s.label}`
+                    : `Select Scenario ${i + 1}`
+                }
+                role="button"
+                id={`activate-scenario-btn-${i}`}
+                data-testid={`activate-scenario-btn-${i}`}
+              >
+                {s.label || `Scenario ${i + 1}`}
+              </button>
               <button
                 className="small"
-                title="Delete"
-                onClick={() => onDelete(i)}
-                aria-label="Delete"
+                title="Duplicate"
+                onClick={() => onDuplicate(i)}
+                aria-label={
+                  s.label
+                    ? `Duplicate scenario: ${s.label}`
+                    : `Duplicate Scenario ${i + 1}`
+                }
                 role="button"
-                id={`delete-scenario-btn-${i}`}
-                data-testid={`delete-scenario-btn-${i}`}
+                id={`duplicate-scenario-btn-${i}`}
+                data-testid={`duplicate-scenario-btn-${i}`}
               >
-                Delete
+                Duplicate
               </button>
-            )}
-          </li>
-        ))}
+              {i > 0 && (
+                <button
+                  className="small"
+                  title="Delete"
+                  onClick={() => onDelete(i)}
+                  aria-label={
+                    s.label
+                      ? `Delete scenario: ${s.label}`
+                      : `Delete Scenario ${i + 1}`
+                  }
+                  role="button"
+                  id={`delete-scenario-btn-${i}`}
+                  data-testid={`delete-scenario-btn-${i}`}
+                >
+                  Delete
+                </button>
+              )}
+            </li>
+          ))
+        )}
       </ul>
     </div>
   );
@@ -999,27 +1037,38 @@ function App() {
               onDelete={handleDeleteScenario}
               onCreate={handleNewScenario}
             />
-            <div className="scenarios-charts" role="region" aria-label="Scenario Projections">
+            <div
+              className="scenarios-charts"
+              role="region"
+              aria-label="Scenario Projections"
+              data-testid="scenarios-charts"
+            >
               {scenarios.map((s, idx) => (
                 <div
                   key={s.id}
                   className={"scenario-chart" + (idx === activeScenarioIdx ? " active" : "")}
-                  aria-current={idx === activeScenarioIdx}
-                  aria-label={`Scenario Projection Chart: Scenario ${idx + 1}${s.label ? ` (${s.label})` : ""}${idx === activeScenarioIdx ? " (Active)" : ""}`}
+                  aria-current={idx === activeScenarioIdx ? "true" : "false"}
+                  aria-label={
+                    s.label && s.label.length > 0
+                      ? `Scenario Projection Chart: Scenario ${idx + 1} (${s.label})${idx === activeScenarioIdx ? " (Active)" : ""}`
+                      : `Scenario Projection Chart: Scenario ${idx + 1}${idx === activeScenarioIdx ? " (Active)" : ""}`
+                  }
                   data-testid={`scenario-chart-${idx}`}
                   role="region"
+                  tabIndex={0}
                 >
                   <ProjectionChart
                     projection={s.projection}
                     comparison={idx !== activeScenarioIdx ? scenarios[activeScenarioIdx].projection : null}
                     color={idx === activeScenarioIdx ? COLORS.primary : COLORS.secondary}
-                    chartId={`scenario${idx+1}`}
+                    chartId={`scenario${idx + 1}`}
                   />
                   <div
                     className="scenario-label-compare"
-                    aria-label="Scenario Label"
+                    aria-label={`Scenario Label: ${s.label || `Scenario ${idx + 1}`}`}
+                    data-testid={`scenario-label-${idx}`}
                   >
-                    {s.label}
+                    {s.label || `Scenario ${idx + 1}`}
                   </div>
                 </div>
               ))}
