@@ -56,10 +56,16 @@ function Sidebar({ selected, onSelect, user, onLogout }) {
 }
 
 /** Modal Dialog wrapper (generic) */
-function Modal({ open, onClose, children, title }) {
+function Modal({ open, onClose, children, title, closeTestId }) {
   if (!open) return null;
   // Generate a unique id for label association. Use title or empty fallback.
   const titleId = `modal-title-${typeof title === "string" ? title.toLowerCase().replace(/[^a-z0-9]+/gi, "-") : Math.random().toString(36).slice(2)}`;
+  // Unique test id fallback: kebab-case of title or generic
+  const derivedTestId =
+    closeTestId ||
+    (typeof title === "string"
+      ? `close-${title.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}-modal`
+      : "close-generic-modal");
 
   return (
     <div
@@ -74,7 +80,8 @@ function Modal({ open, onClose, children, title }) {
           <h2 id={titleId}>{title}</h2>
           <button
             className="modal-close"
-            aria-label="Close"
+            aria-label={`Close ${title ? title : "modal"}`}
+            data-testid={derivedTestId}
             onClick={onClose}
           >
             ×
@@ -110,7 +117,7 @@ function AuthModal({ open, onAuthenticate, error, initialTab = "login" }) {
   };
 
   return (
-    <Modal open={open} onClose={handleClose} title="Welcome to RetireSecure">
+    <Modal open={open} onClose={handleClose} title="Welcome to RetireSecure" closeTestId="close-welcome-to-retiresecure-modal">
       <div style={{ marginBottom: 20, display: "flex", gap: 8 }}>
         <button
           className={"switch-tab" + (tab === "login" ? " selected" : "")}
@@ -246,7 +253,12 @@ function DataEntryModal({ open, onClose, type, onSave, initial, assetLabels, inc
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={`Edit ${capitalize(type)}`}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Edit ${capitalize(type)}`}
+      closeTestId={`close-edit-${type}-modal`}
+    >
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {fields.map((field) => (
           <label key={field.key} style={{ fontWeight: 500 }}>
@@ -755,6 +767,7 @@ function App() {
         open={showModal === "projection"}
         onClose={() => setShowModal(null)}
         title="Retirement Projection"
+        closeTestId="close-retirement-projection-modal"
       >
         <ProjectionChart
           projection={scenario.projection}
@@ -765,6 +778,8 @@ function App() {
             className="primary"
             onClick={() => setShowModal(null)}
             autoFocus
+            data-testid="close-projection-chart-button"
+            aria-label="Close Retirement Projection dialog"
           >
             Close
           </button>
