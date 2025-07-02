@@ -493,6 +493,13 @@ function ProjectionChart({ projection, comparison, color=COLORS.primary }) {
  *  - (Comment for maintainers: Do NOT introduce <span>, <Fragment>, `dangerouslySetInnerHTML`, or other wrappers in the scenario label button in the future.)
  */
 function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete, onCreate }) {
+  // Helper to generate a unique, query-stable testId per label as fallback
+  const labelTestId = (label, idx) =>
+    "scenario-label-btn-" +
+    (typeof label === "string"
+      ? label.toLowerCase().replace(/[^a-z0-9]+/gi, "-") + "-" + idx
+      : idx);
+
   return (
     <div className="scenarios-panel">
       <h3>
@@ -509,8 +516,9 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
       </h3>
       <ul className="scenarios-list">
         {scenarios.map((s, i) => {
-          // The label MUST be pure text and uninterrupted inside the button for robust testing
+          // The label MUST be pure text uninterrupted in DOM inside the button
           const labelText = typeof s.label === "string" ? s.label : `Scenario ${i + 1}`;
+          // Guarantee: labelText is a pure string, no markup in render, and testid is stable/unique as fallback
           return (
             <li
               className={i === activeIdx ? "active" : ""}
@@ -518,17 +526,16 @@ function ScenarioPanel({ scenarios, activeIdx, onActivate, onDuplicate, onDelete
               data-testid={`scenario-listitem-${i}`}
               aria-current={i === activeIdx ? "true" : undefined}
             >
-              {/* Button label is rendered as a contiguous text node.
-                  data-testid is unique per label for robust test queries. */}
               <button
                 className="scenario-label"
                 onClick={() => onActivate(i)}
                 aria-label={`Scenario ${labelText}`}
-                data-testid={`scenario-label-btn-${i}`}
+                data-testid={labelTestId(labelText, i)}
                 data-scenario-index={i}
                 data-scenario-id={s.id}
                 data-scenario-label={labelText}
               >
+                {/* The label below renders as one DOM text node, uninterrupted: */}
                 {labelText}
               </button>
               <button
