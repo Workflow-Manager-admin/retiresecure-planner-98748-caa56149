@@ -796,8 +796,12 @@ function describeSpending(s) {
   );
 }
 
-// PUBLIC_INTERFACE
-function runProjection(assets, income, spending, taxesInput) {
+/**
+ * PUBLIC_INTERFACE
+ * Simulates a basic retirement income projection over 30 years.
+ * Exposed for direct unit testing.
+ */
+export function runProjection(assets, income, spending, taxesInput) {
   // Simulate a basic projection over 30 years.
   // - Assume retirement at 67 (or when social security starts).
   // - Asset drawdown is used to cover expenses not covered by income.
